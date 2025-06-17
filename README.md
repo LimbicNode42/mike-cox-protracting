@@ -5,10 +5,17 @@ MCP Server for Keycloak and Infisical integration, providing identity and access
 ## Features
 
 ### Keycloak Integration
-- User management (create, read, update, delete)
-- Role management and assignment
-- Client management
-- Multi-realm support
+- **Multi-realm/Multi-client Support**: No need to specify realm or client ID for every operation
+- **Realm Management**: Create, read, update, delete realms
+- **User Management**: Complete user lifecycle management
+- **Client Management**: Full client configuration and management
+- **Role Management**: Realm and client roles
+- **Group Management**: User groups and hierarchies
+- **Identity Provider Integration**: External identity provider configuration
+- **Client Scope Management**: OAuth/OIDC scope configuration
+- **Event Monitoring**: Access to Keycloak events and admin events
+- **Authentication Flows**: Custom authentication flow management
+- **Organization Management**: Enterprise organization features
 
 ### Infisical Integration
 - Secret management (create, read, update, delete)
@@ -82,18 +89,95 @@ This separation allows LLMs to:
 
 ## Available Tools and Resources
 
-### Keycloak Resources (Read-only, like GET requests)
-- `keycloak://users?realm=master&max=100&search=term` - List users in a realm
-- `keycloak://user/{userId}?realm=master` - Get user details
-- `keycloak://roles?realm=master&clientId=optional` - List roles in a realm
-- `keycloak://clients?realm=master` - List clients in a realm
+This MCP server provides comprehensive coverage of the Keycloak Admin REST API, supporting dynamic multi-realm and multi-client operations.
 
-### Keycloak Tools (Write operations, like POST/PUT/DELETE)
+### Keycloak Resources (Read-only operations)
+
+#### Realm Resources
+- `keycloak://realms` - List all realms
+- `keycloak://realm/{realm}` - Get specific realm configuration
+
+#### User Resources
+- `keycloak://users?realm=master&max=100&search=term&first=0` - List users in a realm
+- `keycloak://user/{userId}?realm=master` - Get user details
+- `keycloak://users/count?realm=master&search=term` - Get user count
+
+#### Client Resources
+- `keycloak://clients?realm=master&clientId=optional&max=100&first=0` - List clients
+- `keycloak://client/{clientUuid}?realm=master` - Get client details
+- `keycloak://client/{clientUuid}/roles?realm=master` - List client roles
+
+#### Role Resources
+- `keycloak://roles?realm=master&max=100&search=term` - List realm roles
+- `keycloak://role/{roleName}?realm=master` - Get role details
+
+#### Group Resources
+- `keycloak://groups?realm=master&max=100&search=term&first=0` - List groups
+- `keycloak://group/{groupId}?realm=master` - Get group details
+
+#### Identity Provider Resources
+- `keycloak://identity-providers?realm=master&alias=optional&providerId=optional` - List identity providers
+- `keycloak://identity-provider/{alias}?realm=master` - Get identity provider details
+
+#### Client Scope Resources
+- `keycloak://client-scopes?realm=master` - List client scopes
+
+#### Event Resources
+- `keycloak://events?realm=master&max=100&first=0&dateFrom=ISO&dateTo=ISO&type=EVENT_TYPE&userId=USER_ID` - Get events
+- `keycloak://admin-events?realm=master&max=100&first=0&dateFrom=ISO&dateTo=ISO&operationType=OP&authRealm=REALM` - Get admin events
+
+#### Authentication Flow Resources
+- `keycloak://authentication/flows?realm=master` - List authentication flows
+
+#### Organization Resources
+- `keycloak://organizations?realm=master&max=100&first=0&search=term` - List organizations
+
+### Keycloak Tools (Write operations)
+
+#### Realm Management
+- `keycloak_create_realm` - Create a new realm
+- `keycloak_update_realm` - Update realm configuration
+- `keycloak_delete_realm` - Delete a realm
+
+#### User Management
 - `keycloak_create_user` - Create a new user
 - `keycloak_update_user` - Update user information
 - `keycloak_delete_user` - Delete a user
-- `keycloak_assign_role` - Assign role to user
+
+#### Client Management
 - `keycloak_create_client` - Create a new client
+- `keycloak_update_client` - Update client configuration
+- `keycloak_delete_client` - Delete a client
+
+#### Role Management
+- `keycloak_create_role` - Create a realm role
+- `keycloak_update_role` - Update role details
+- `keycloak_delete_role` - Delete a role
+- `keycloak_create_client_role` - Create a client role
+
+#### Role Assignment
+- `keycloak_assign_realm_role` - Assign realm role to user
+- `keycloak_assign_client_role` - Assign client role to user
+- `keycloak_assign_role` - Legacy role assignment (backward compatibility)
+
+#### Group Management
+- `keycloak_create_group` - Create a new group
+- `keycloak_update_group` - Update group details
+- `keycloak_delete_group` - Delete a group
+
+#### Identity Provider Management
+- `keycloak_create_identity_provider` - Create identity provider
+- `keycloak_update_identity_provider` - Update identity provider
+- `keycloak_delete_identity_provider` - Delete identity provider
+
+#### Client Scope Management
+- `keycloak_create_client_scope` - Create a client scope
+
+#### Authentication Flow Management
+- `keycloak_create_authentication_flow` - Create authentication flow
+
+#### Organization Management
+- `keycloak_create_organization` - Create an organization
 
 ### Infisical Resources (Read-only, like GET requests)
 - `infisical://secrets?projectId=123&environment=dev` - List secrets in a project/environment
