@@ -218,14 +218,45 @@ export class KeycloakClient {
       content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
     };
   }
-
   async createClient(args: any): Promise<any> {
     await this.ensureAuthenticated();
     const realm = this.getRealmPath(args.realm);
     const { realm: realmParam, ...clientData } = args;
-    await this.axiosInstance.post(`/${realm}/clients`, clientData);
+    
+    // Create the client
+    const createResponse = await this.axiosInstance.post(`/${realm}/clients`, clientData);
+    
+    // If this is a confidential client, retrieve the generated secret
+    let clientSecret = null;
+    if (!clientData.publicClient && clientData.protocol === 'openid-connect') {
+      try {
+        // First, find the created client by clientId to get its UUID
+        const clientsResponse = await this.axiosInstance.get(`/${realm}/clients`, {
+          params: { clientId: clientData.clientId }
+        });
+        
+        if (clientsResponse.data && clientsResponse.data.length > 0) {
+          const clientUuid = clientsResponse.data[0].id;
+          
+          // Get the client secret
+          const secretResponse = await this.axiosInstance.get(`/${realm}/clients/${clientUuid}/client-secret`);
+          clientSecret = secretResponse.data.value;
+          
+          // Store the secret in the client data for the integration to use
+          clientData.secret = clientSecret;
+        }
+      } catch (error) {
+        console.warn(`Could not retrieve client secret for ${clientData.clientId}:`, error);
+      }
+    }
+    
+    const message = clientSecret 
+      ? `Client '${clientData.clientId}' created successfully in realm '${realm}' with secret`
+      : `Client '${clientData.clientId}' created successfully in realm '${realm}'`;
+    
     return {
-      content: [{ type: 'text', text: `Client '${clientData.clientId}' created successfully in realm '${realm}'` }],
+      content: [{ type: 'text', text: message }],
+      clientData, // Include the client data with secret for integration
     };
   }
 

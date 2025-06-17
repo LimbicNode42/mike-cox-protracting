@@ -15,6 +15,8 @@ import { keycloakTools } from './keycloak/tools.js';
 import { infisicalTools } from './infisical/tools.js';
 import { keycloakResources } from './keycloak/resources.js';
 import { infisicalResources } from './infisical/resources.js';
+import { KeycloakInfisicalIntegration, IntegrationConfig } from './integration/keycloak-infisical.js';
+import { integrationTools } from './integration/tools.js';
 
 const server = new Server(
   {
@@ -32,6 +34,7 @@ const server = new Server(
 // Initialize clients
 let keycloakClient: KeycloakClient | null = null;
 let infisicalClient: InfisicalClient | null = null;
+let integration: KeycloakInfisicalIntegration | null = null;
 
 // Initialize clients from environment variables
 function initializeClients() {
@@ -58,6 +61,26 @@ function initializeClients() {
       token: infisicalToken,
     });
   }
+
+  // Initialize integration if both clients are available
+  if (keycloakClient && infisicalClient) {
+    const integrationConfig: IntegrationConfig = {
+      enabled: process.env.KEYCLOAK_INFISICAL_INTEGRATION_ENABLED === 'true',
+      infisicalProjectId: process.env.KEYCLOAK_INFISICAL_PROJECT_ID,
+      infisicalEnvironment: process.env.KEYCLOAK_INFISICAL_ENVIRONMENT || 'dev',
+      secretPrefix: process.env.KEYCLOAK_INFISICAL_SECRET_PREFIX || 'KEYCLOAK_',
+      folderPath: process.env.KEYCLOAK_INFISICAL_FOLDER_PATH || '/keycloak',
+      autoTagSlugs: process.env.KEYCLOAK_INFISICAL_AUTO_TAGS?.split(',') || ['keycloak', 'auto-generated']
+    };
+
+    integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
+    
+    if (integration.isEnabled()) {
+      console.log('Keycloak-Infisical integration enabled');
+    } else {
+      console.log('Keycloak-Infisical integration disabled or not configured');
+    }
+  }
 }
 
 // List available tools
@@ -70,6 +93,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   
   if (infisicalClient) {
     tools.push(...infisicalTools);
+  }
+
+  // Add integration tools if both clients are available
+  if (keycloakClient && infisicalClient) {
+    tools.push(...integrationTools);
   }
 
   return { tools };
@@ -88,19 +116,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         case 'keycloak_update_realm':
           return await keycloakClient.updateRealm(args);
         case 'keycloak_delete_realm':
-          return await keycloakClient.deleteRealm(args);
-        
-        // User management
+          return await keycloakClient.deleteRealm(args);        // User management
         case 'keycloak_create_user':
-          return await keycloakClient.createUser(args);
+          const userResult = await keycloakClient.createUser(args);
+          // Auto-store user credentials in Infisical if integration is enabled
+          if (integration?.isEnabled() && args && args.password) {
+            await integration.storeUserCredentials(args, (args.realm as string) || 'master', args.password as string);
+          }
+          return userResult;
         case 'keycloak_update_user':
           return await keycloakClient.updateUser(args);
         case 'keycloak_delete_user':
           return await keycloakClient.deleteUser(args);
-        
-        // Client management
+          // Client management
         case 'keycloak_create_client':
-          return await keycloakClient.createClient(args);
+          const clientResult = await keycloakClient.createClient(args);
+          // Auto-store client secret in Infisical if integration is enabled
+          if (integration?.isEnabled() && args && clientResult.clientData) {
+            await integration.storeClientSecret(clientResult.clientData, (args.realm as string) || 'master');
+          }
+          return clientResult;
         case 'keycloak_update_client':
           return await keycloakClient.updateClient(args);
         case 'keycloak_delete_client':
@@ -131,10 +166,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return await keycloakClient.updateGroup(args);
         case 'keycloak_delete_group':
           return await keycloakClient.deleteGroup(args);
-        
-        // Identity provider management
+          // Identity provider management
         case 'keycloak_create_identity_provider':
-          return await keycloakClient.createIdentityProvider(args);
+          const idpResult = await keycloakClient.createIdentityProvider(args);
+          // Auto-store identity provider client secret in Infisical if integration is enabled
+          if (integration?.isEnabled() && args) {
+            await integration.storeIdentityProviderSecret(args, (args.realm as string) || 'master');
+          }
+          return idpResult;
         case 'keycloak_update_identity_provider':
           return await keycloakClient.updateIdentityProvider(args);
         case 'keycloak_delete_identity_provider':
@@ -203,9 +242,55 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return await infisicalClient.updateOrganizationMembership(args);
         case 'infisical_delete_organization_membership':
           return await infisicalClient.deleteOrganizationMembership(args);
-        
-        default:
+          default:
           throw new Error(`Unknown Infisical tool: ${name}`);
+      }
+    }
+
+    // Integration tools (require both clients)
+    if (name.startsWith('keycloak_infisical_') && keycloakClient && infisicalClient) {
+      switch (name) {        case 'keycloak_infisical_configure_integration':
+          if (!integration) {
+            const integrationConfig: IntegrationConfig = { enabled: false };
+            integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
+          }
+          if (args) {
+            integration.updateConfig(args as Partial<IntegrationConfig>);
+          }
+          return {
+            content: [{ type: 'text', text: `Integration configuration updated. Enabled: ${integration.isEnabled()}` }],
+          };
+
+        case 'keycloak_infisical_get_integration_status':
+          if (!integration) {
+            return {
+              content: [{ type: 'text', text: 'Integration not initialized. Both Keycloak and Infisical clients are required.' }],
+            };
+          }
+          const config = integration.getConfig();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(config, null, 2) }],
+          };        case 'keycloak_infisical_store_existing_secret':
+          if (!integration?.isEnabled()) {
+            return {
+              content: [{ type: 'text', text: 'Integration is not enabled or not configured.' }],
+            };
+          }
+          if (!args) {
+            throw new Error('Arguments are required for this tool');
+          }
+          await integration.storeGeneratedSecret(
+            args.secretName as string,
+            args.secretValue as string,
+            args.context as string,
+            (args.realm as string) || 'master'
+          );
+          return {
+            content: [{ type: 'text', text: `Secret '${args.secretName}' stored in Infisical successfully` }],
+          };
+
+        default:
+          throw new Error(`Unknown integration tool: ${name}`);
       }
     }
 

@@ -26,6 +26,7 @@ MCP Server for Keycloak and Infisical integration, providing identity and access
 - **Organization Management**: User membership and role management within organizations
 - **Audit Logging**: Comprehensive audit trail with advanced filtering and search
 - **Advanced Parameterization**: Dynamic project/workspace/environment support
+- **🔗 Keycloak-Infisical Auto-Integration**: Automatically store Keycloak secrets in Infisical when resources are created
 
 ## Installation
 
@@ -50,6 +51,17 @@ export KEYCLOAK_REALM="master"  # optional, defaults to 'master'
 ```bash
 export INFISICAL_URL="https://your-infisical-instance.com"
 export INFISICAL_TOKEN="your-api-token"
+```
+
+### Keycloak-Infisical Integration Configuration
+Enable automatic storage of Keycloak secrets in Infisical:
+```bash
+export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
+export KEYCLOAK_INFISICAL_PROJECT_ID="your-infisical-project-id"
+export KEYCLOAK_INFISICAL_ENVIRONMENT="dev"  # optional, defaults to 'dev'
+export KEYCLOAK_INFISICAL_SECRET_PREFIX="KEYCLOAK_"  # optional, defaults to 'KEYCLOAK_'
+export KEYCLOAK_INFISICAL_FOLDER_PATH="/keycloak"  # optional, defaults to '/keycloak'
+export KEYCLOAK_INFISICAL_AUTO_TAGS="keycloak,auto-generated"  # optional, comma-separated tags
 ```
 
 ## Usage Examples
@@ -150,7 +162,10 @@ Add to your `.vscode/mcp.json`:
         "KEYCLOAK_USERNAME": "admin",
         "KEYCLOAK_PASSWORD": "your-password",
         "INFISICAL_URL": "https://your-infisical-instance.com",
-        "INFISICAL_TOKEN": "your-token"
+        "INFISICAL_TOKEN": "your-token",
+        "KEYCLOAK_INFISICAL_INTEGRATION_ENABLED": "true",
+        "KEYCLOAK_INFISICAL_PROJECT_ID": "your-project-id",
+        "KEYCLOAK_INFISICAL_ENVIRONMENT": "dev"
       }
     }
   }
@@ -353,6 +368,96 @@ This MCP server provides comprehensive coverage of the Keycloak Admin REST API, 
 #### Organization Management
 - `infisical_update_organization_membership` - Update user role in organization
 - `infisical_delete_organization_membership` - Remove user from organization
+
+### 🔗 Keycloak-Infisical Integration Tools
+
+#### Integration Management
+- `keycloak_infisical_configure_integration` - Configure integration settings
+- `keycloak_infisical_get_integration_status` - Get current integration status and configuration
+- `keycloak_infisical_store_existing_secret` - Manually store existing Keycloak secrets in Infisical
+
+## 🚀 Keycloak-Infisical Auto-Integration
+
+This MCP server features a powerful auto-integration system that automatically stores important Keycloak secrets in Infisical when resources are created. This creates a seamless bridge between identity management and secrets management.
+
+### 🔐 Automatic Secret Storage
+
+When the integration is enabled, the following Keycloak operations will automatically store secrets in Infisical:
+
+1. **Client Creation**: 
+   - Automatically stores client secrets for confidential clients
+   - Secret naming: `KEYCLOAK_CLIENT_{clientId}_SECRET`
+
+2. **User Creation**: 
+   - Stores user passwords when provided during creation
+   - Secret naming: `KEYCLOAK_USER_{username}_PASSWORD`
+
+3. **Identity Provider Setup**: 
+   - Stores IdP client secrets and other sensitive configuration
+   - Secret naming: `KEYCLOAK_IDP_{alias}_CLIENT_SECRET`
+
+### 📁 Organization in Infisical
+
+All auto-generated secrets are organized with:
+- **Folder Structure**: Stored in `/keycloak` folder by default
+- **Consistent Naming**: Prefixed with `KEYCLOAK_` for easy identification
+- **Auto-Tagging**: Tagged with `keycloak` and `auto-generated` tags
+- **Rich Metadata**: Includes context about the source Keycloak resource
+
+### 🛠️ Configuration
+
+Enable the integration with environment variables:
+
+```bash
+# Enable the integration
+export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
+
+# Required: Infisical project where secrets will be stored
+export KEYCLOAK_INFISICAL_PROJECT_ID="your-project-id"
+
+# Optional configurations
+export KEYCLOAK_INFISICAL_ENVIRONMENT="production"      # Default: "dev"
+export KEYCLOAK_INFISICAL_SECRET_PREFIX="KC_"           # Default: "KEYCLOAK_"
+export KEYCLOAK_INFISICAL_FOLDER_PATH="/identity"       # Default: "/keycloak"
+export KEYCLOAK_INFISICAL_AUTO_TAGS="identity,secrets"  # Default: "keycloak,auto-generated"
+```
+
+### 🎯 Usage Examples
+
+#### Automatic Integration Example
+```bash
+# When you create a confidential client, the secret is automatically stored in Infisical
+keycloak_create_client realm=mycompany clientId=web-app name="Web Application" protocol=openid-connect publicClient=false
+
+# Result: 
+# - Client created in Keycloak
+# - Client secret automatically stored in Infisical as "KEYCLOAK_CLIENT_web-app_SECRET"
+# - Secret includes metadata about realm, client, and creation context
+```
+
+#### Manual Secret Storage
+```bash
+# Store an existing secret manually
+keycloak_infisical_store_existing_secret secretName="API_KEY" secretValue="secret-key-123" context="External API integration" realm="production"
+```
+
+#### Integration Management
+```bash
+# Check integration status
+keycloak_infisical_get_integration_status
+
+# Update integration configuration
+keycloak_infisical_configure_integration enabled=true infisicalProjectId="proj-123" infisicalEnvironment="prod"
+```
+
+### 🔒 Security Benefits
+
+1. **Centralized Secret Management**: All Keycloak secrets stored in one secure location
+2. **Audit Trail**: Complete audit history of secret creation and access in Infisical
+3. **Access Control**: Leverage Infisical's RBAC for fine-grained secret access
+4. **Versioning**: Automatic versioning of secrets in Infisical
+5. **Encryption**: Secrets encrypted at rest in Infisical
+6. **Integration Transparency**: Clear tracking of auto-generated vs manually created secrets
 
 ## Development
 
