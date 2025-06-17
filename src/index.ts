@@ -155,19 +155,55 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         default:
           throw new Error(`Unknown Keycloak tool: ${name}`);
       }
-    }
-
-    // Infisical tools (only write operations)
+    }    // Infisical tools (only write operations)
     if (name.startsWith('infisical_') && infisicalClient) {
       switch (name) {
+        // Secret management
         case 'infisical_create_secret':
           return await infisicalClient.createSecret(args);
         case 'infisical_update_secret':
           return await infisicalClient.updateSecret(args);
         case 'infisical_delete_secret':
           return await infisicalClient.deleteSecret(args);
+        
+        // Project management
         case 'infisical_create_project':
           return await infisicalClient.createProject(args);
+        case 'infisical_update_project':
+          return await infisicalClient.updateProject(args);
+        case 'infisical_delete_project':
+          return await infisicalClient.deleteProject(args);
+        
+        // Environment management
+        case 'infisical_create_environment':
+          return await infisicalClient.createEnvironment(args);
+        case 'infisical_update_environment':
+          return await infisicalClient.updateEnvironment(args);
+        case 'infisical_delete_environment':
+          return await infisicalClient.deleteEnvironment(args);
+        
+        // Folder management
+        case 'infisical_create_folder':
+          return await infisicalClient.createFolder(args);
+        case 'infisical_update_folder':
+          return await infisicalClient.updateFolder(args);
+        case 'infisical_delete_folder':
+          return await infisicalClient.deleteFolder(args);
+        
+        // Secret tag management
+        case 'infisical_create_secret_tag':
+          return await infisicalClient.createSecretTag(args);
+        case 'infisical_update_secret_tag':
+          return await infisicalClient.updateSecretTag(args);
+        case 'infisical_delete_secret_tag':
+          return await infisicalClient.deleteSecretTag(args);
+        
+        // Organization management
+        case 'infisical_update_organization_membership':
+          return await infisicalClient.updateOrganizationMembership(args);
+        case 'infisical_delete_organization_membership':
+          return await infisicalClient.deleteOrganizationMembership(args);
+        
         default:
           throw new Error(`Unknown Infisical tool: ${name}`);
       }
@@ -340,27 +376,120 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         const first = parseInt(searchParams.get('first') || '0');
         const search = searchParams.get('search') || undefined;
         return await keycloakClient.listOrganizations({ realm, max, first, search });
-      }
-    }else if (url.protocol === 'infisical:' && infisicalClient) {
+      }    } else if (url.protocol === 'infisical:' && infisicalClient) {
       const path = url.pathname.slice(1); // Remove leading slash
       const searchParams = new URLSearchParams(url.search);
       
+      // Secret resources
       if (path === 'secrets') {
-        const projectId = searchParams.get('projectId');
+        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
         const environment = searchParams.get('environment') || 'dev';
-        if (!projectId) throw new Error('projectId is required');
-        return await infisicalClient.listSecrets({ projectId, environment });
+        const secretPath = searchParams.get('secretPath') || '/';
+        const viewSecretValue = searchParams.get('viewSecretValue') !== 'false';
+        const expandSecretReferences = searchParams.get('expandSecretReferences') === 'true';
+        const recursive = searchParams.get('recursive') === 'true';
+        const includeImports = searchParams.get('includeImports') === 'true';
+        const metadataFilter = searchParams.get('metadataFilter');
+        const tagSlugs = searchParams.get('tagSlugs');
+        const workspaceSlug = searchParams.get('workspaceSlug');
+        
+        if (!workspaceId) throw new Error('workspaceId or projectId is required');
+        return await infisicalClient.listSecrets({ 
+          workspaceId, environment, secretPath, viewSecretValue, 
+          expandSecretReferences, recursive, includeImports, 
+          metadataFilter, tagSlugs, workspaceSlug 
+        });
       } else if (path.startsWith('secret/')) {
         const secretName = path.split('/')[1];
-        const projectId = searchParams.get('projectId');
+        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
         const environment = searchParams.get('environment') || 'dev';
-        if (!projectId) throw new Error('projectId is required');
-        return await infisicalClient.getSecret({ projectId, environment, secretName });
-      } else if (path === 'projects') {
+        const secretPath = searchParams.get('secretPath') || '/';
+        const version = searchParams.get('version');
+        const type = searchParams.get('type') || 'shared';
+        const expandSecretReferences = searchParams.get('expandSecretReferences') === 'true';
+        const workspaceSlug = searchParams.get('workspaceSlug');
+        
+        if (!workspaceId) throw new Error('workspaceId or projectId is required');
+        return await infisicalClient.getSecret({ 
+          workspaceId, environment, secretName, secretPath, 
+          version, type, expandSecretReferences, workspaceSlug 
+        });
+      }
+      
+      // Project resources
+      else if (path === 'projects') {
         return await infisicalClient.listProjects({});
-      } else if (path.startsWith('environments/')) {
-        const projectId = path.split('/')[1];
-        return await infisicalClient.listEnvironments({ projectId });
+      } else if (path.startsWith('project/')) {
+        const workspaceId = path.split('/')[1];
+        return await infisicalClient.getProject({ workspaceId });
+      }
+      
+      // Environment resources
+      else if (path.startsWith('environments/')) {
+        const workspaceId = path.split('/')[1];
+        return await infisicalClient.listEnvironments({ workspaceId });
+      }
+      
+      // Folder resources
+      else if (path === 'folders') {
+        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
+        const environment = searchParams.get('environment');
+        const folderPath = searchParams.get('path') || searchParams.get('directory');
+        const recursive = searchParams.get('recursive') === 'true';
+        const lastSecretModified = searchParams.get('lastSecretModified');
+        
+        if (!workspaceId || !environment) throw new Error('workspaceId/projectId and environment are required');
+        return await infisicalClient.listFolders({ 
+          workspaceId, environment, path: folderPath, 
+          recursive, lastSecretModified 
+        });
+      } else if (path.startsWith('folder/')) {
+        const folderId = path.split('/')[1];
+        return await infisicalClient.getFolder({ folderId });
+      }
+      
+      // Secret tag resources
+      else if (path.startsWith('secret-tags/')) {
+        const parts = path.split('/');
+        if (parts.length === 2) {
+          // List tags: secret-tags/{workspaceId}
+          const workspaceId = parts[1];
+          return await infisicalClient.listSecretTags({ workspaceId });
+        } else if (parts.length === 3) {
+          // Get specific tag: secret-tags/{workspaceId}/{tagId}
+          const workspaceId = parts[1];
+          const tagId = parts[2];
+          return await infisicalClient.getSecretTag({ workspaceId, tagId });
+        }
+      }
+      
+      // Organization resources
+      else if (path.startsWith('organization/') && path.includes('/memberships')) {
+        const organizationId = path.split('/')[1];
+        return await infisicalClient.getOrganizationMemberships({ organizationId });
+      }
+      
+      // Audit log resources
+      else if (path === 'audit-logs') {
+        const projectId = searchParams.get('projectId');
+        const environment = searchParams.get('environment');
+        const actorType = searchParams.get('actorType');
+        const secretPath = searchParams.get('secretPath');
+        const secretKey = searchParams.get('secretKey');
+        const eventType = searchParams.get('eventType');
+        const userAgentType = searchParams.get('userAgentType');
+        const eventMetadata = searchParams.get('eventMetadata');
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        const offset = parseInt(searchParams.get('offset') || '0');
+        const limit = parseInt(searchParams.get('limit') || '20');
+        const actor = searchParams.get('actor');
+        
+        return await infisicalClient.getAuditLogs({ 
+          projectId, environment, actorType, secretPath, secretKey, 
+          eventType, userAgentType, eventMetadata, startDate, endDate, 
+          offset, limit, actor 
+        });
       }
     }
     

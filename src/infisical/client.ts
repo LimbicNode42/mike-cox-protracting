@@ -20,11 +20,25 @@ export class InfisicalClient {
     });
   }
 
+  // ========== SECRET MANAGEMENT ==========
+  
   async listSecrets(args: any): Promise<any> {
     try {
-      const response = await this.axiosInstance.get(`/v3/secrets/raw`, {
-        params: { workspaceId: args.projectId, environment: args.environment || 'dev' },
-      });
+      const params: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment || 'dev',
+        secretPath: args.secretPath || '/',
+        viewSecretValue: args.viewSecretValue !== undefined ? args.viewSecretValue : true,
+        expandSecretReferences: args.expandSecretReferences || false,
+        recursive: args.recursive || false,
+        include_imports: args.includeImports || false,
+      };
+      
+      if (args.workspaceSlug) params.workspaceSlug = args.workspaceSlug;
+      if (args.metadataFilter) params.metadataFilter = args.metadataFilter;
+      if (args.tagSlugs) params.tagSlugs = args.tagSlugs;
+
+      const response = await this.axiosInstance.get(`/v3/secrets/raw`, { params });
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -37,9 +51,18 @@ export class InfisicalClient {
 
   async getSecret(args: any): Promise<any> {
     try {
-      const response = await this.axiosInstance.get(`/v3/secrets/raw/${args.secretName}`, {
-        params: { workspaceId: args.projectId, environment: args.environment || 'dev' },
-      });
+      const params: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment || 'dev',
+        secretPath: args.secretPath || '/',
+        version: args.version,
+        type: args.type || 'shared',
+        expandSecretReferences: args.expandSecretReferences || false,
+      };
+      
+      if (args.workspaceSlug) params.workspaceSlug = args.workspaceSlug;
+
+      const response = await this.axiosInstance.get(`/v3/secrets/raw/${args.secretName}`, { params });
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -52,13 +75,24 @@ export class InfisicalClient {
 
   async createSecret(args: any): Promise<any> {
     try {
-      await this.axiosInstance.post(`/v3/secrets/raw/${args.secretName}`, {
-        workspaceId: args.projectId,
+      const data: any = {
+        workspaceId: args.workspaceId || args.projectId,
         environment: args.environment || 'dev',
         secretValue: args.secretValue,
-      });
+        secretPath: args.secretPath || '/',
+        secretComment: args.secretComment || '',
+        type: args.type || 'shared',
+        skipMultilineEncoding: args.skipMultilineEncoding || false,
+      };
+
+      if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
+      if (args.tagIds) data.tagIds = args.tagIds;
+      if (args.secretReminderRepeatDays) data.secretReminderRepeatDays = args.secretReminderRepeatDays;
+      if (args.secretReminderNote) data.secretReminderNote = args.secretReminderNote;
+
+      const response = await this.axiosInstance.post(`/v3/secrets/raw/${args.secretName}`, data);
       return {
-        content: [{ type: 'text', text: `Secret created successfully` }],
+        content: [{ type: 'text', text: `Secret '${args.secretName}' created successfully` }],
       };
     } catch (error: any) {
       return {
@@ -69,13 +103,24 @@ export class InfisicalClient {
 
   async updateSecret(args: any): Promise<any> {
     try {
-      await this.axiosInstance.patch(`/v3/secrets/raw/${args.secretName}`, {
-        workspaceId: args.projectId,
+      const data: any = {
+        workspaceId: args.workspaceId || args.projectId,
         environment: args.environment || 'dev',
-        secretValue: args.secretValue,
-      });
+        secretPath: args.secretPath || '/',
+        type: args.type || 'shared',
+        skipMultilineEncoding: args.skipMultilineEncoding || false,
+      };
+
+      if (args.secretValue !== undefined) data.secretValue = args.secretValue;
+      if (args.secretComment !== undefined) data.secretComment = args.secretComment;
+      if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
+      if (args.tagIds) data.tagIds = args.tagIds;
+      if (args.secretReminderRepeatDays !== undefined) data.secretReminderRepeatDays = args.secretReminderRepeatDays;
+      if (args.secretReminderNote !== undefined) data.secretReminderNote = args.secretReminderNote;
+
+      const response = await this.axiosInstance.patch(`/v3/secrets/raw/${args.secretName}`, data);
       return {
-        content: [{ type: 'text', text: `Secret updated successfully` }],
+        content: [{ type: 'text', text: `Secret '${args.secretName}' updated successfully` }],
       };
     } catch (error: any) {
       return {
@@ -86,11 +131,16 @@ export class InfisicalClient {
 
   async deleteSecret(args: any): Promise<any> {
     try {
-      await this.axiosInstance.delete(`/v3/secrets/raw/${args.secretName}`, {
-        params: { workspaceId: args.projectId, environment: args.environment || 'dev' },
-      });
+      const params: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment || 'dev',
+        secretPath: args.secretPath || '/',
+        type: args.type || 'shared',
+      };
+
+      await this.axiosInstance.delete(`/v3/secrets/raw/${args.secretName}`, { params });
       return {
-        content: [{ type: 'text', text: `Secret deleted successfully` }],
+        content: [{ type: 'text', text: `Secret '${args.secretName}' deleted successfully` }],
       };
     } catch (error: any) {
       return {
@@ -99,9 +149,11 @@ export class InfisicalClient {
     }
   }
 
-  async listProjects(args: any): Promise<any> {
+  // ========== PROJECT MANAGEMENT ==========
+
+  async listProjects(args: any = {}): Promise<any> {
     try {
-      const response = await this.axiosInstance.get('/v1/workspace');
+      const response = await this.axiosInstance.get('/v2/workspace');
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -114,12 +166,20 @@ export class InfisicalClient {
 
   async createProject(args: any): Promise<any> {
     try {
-      await this.axiosInstance.post('/v1/workspace', {
-        workspaceName: args.name,
-        organizationSlug: args.slug,
-      });
+      const data: any = {
+        projectName: args.projectName || args.name,
+        projectDescription: args.projectDescription || args.description,
+        type: args.type || 'secret-manager',
+        shouldCreateDefaultEnvs: args.shouldCreateDefaultEnvs !== undefined ? args.shouldCreateDefaultEnvs : true,
+      };
+
+      if (args.slug) data.slug = args.slug;
+      if (args.kmsKeyId) data.kmsKeyId = args.kmsKeyId;
+      if (args.template) data.template = args.template;
+
+      const response = await this.axiosInstance.post('/v2/workspace', data);
       return {
-        content: [{ type: 'text', text: `Project created successfully` }],
+        content: [{ type: 'text', text: `Project '${args.projectName || args.name}' created successfully` }],
       };
     } catch (error: any) {
       return {
@@ -128,9 +188,356 @@ export class InfisicalClient {
     }
   }
 
+  async getProject(args: any): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async updateProject(args: any): Promise<any> {
+    try {
+      const data: any = {};
+      
+      if (args.name !== undefined) data.name = args.name;
+      if (args.autoCapitalization !== undefined) data.autoCapitalization = args.autoCapitalization;
+
+      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}`, data);
+      return {
+        content: [{ type: 'text', text: `Project updated successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async deleteProject(args: any): Promise<any> {
+    try {
+      await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}`);
+      return {
+        content: [{ type: 'text', text: `Project deleted successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  // ========== ENVIRONMENT MANAGEMENT ==========
+
   async listEnvironments(args: any): Promise<any> {
     try {
-      const response = await this.axiosInstance.get(`/v1/workspace/${args.projectId}/environments`);
+      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/environments`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async createEnvironment(args: any): Promise<any> {
+    try {
+      const data: any = {
+        name: args.name,
+        slug: args.slug,
+        position: args.position || 1,
+      };
+
+      const response = await this.axiosInstance.post(`/v1/workspace/${args.workspaceId || args.projectId}/environments`, data);
+      return {
+        content: [{ type: 'text', text: `Environment '${args.name}' created successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async updateEnvironment(args: any): Promise<any> {
+    try {
+      const data: any = {};
+      
+      if (args.name !== undefined) data.name = args.name;
+      if (args.slug !== undefined) data.slug = args.slug;
+      if (args.position !== undefined) data.position = args.position;
+
+      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`, data);
+      return {
+        content: [{ type: 'text', text: `Environment updated successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async deleteEnvironment(args: any): Promise<any> {
+    try {
+      await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`);
+      return {
+        content: [{ type: 'text', text: `Environment deleted successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  // ========== FOLDER MANAGEMENT ==========
+
+  async listFolders(args: any): Promise<any> {
+    try {
+      const params: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment,
+        recursive: args.recursive || false,
+      };
+
+      if (args.path) params.path = args.path;
+      if (args.directory) params.directory = args.directory; // Deprecated but supported
+      if (args.lastSecretModified) params.lastSecretModified = args.lastSecretModified;
+
+      const response = await this.axiosInstance.get('/v1/folders', { params });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async getFolder(args: any): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(`/v1/folders/${args.folderId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async createFolder(args: any): Promise<any> {
+    try {
+      const data: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment,
+        name: args.name,
+        path: args.path || '/',
+      };
+
+      const response = await this.axiosInstance.post('/v1/folders', data);
+      return {
+        content: [{ type: 'text', text: `Folder '${args.name}' created successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async updateFolder(args: any): Promise<any> {
+    try {
+      const data: any = {};
+      
+      if (args.name !== undefined) data.name = args.name;
+
+      const response = await this.axiosInstance.patch(`/v1/folders/${args.folderId}`, data);
+      return {
+        content: [{ type: 'text', text: `Folder updated successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async deleteFolder(args: any): Promise<any> {
+    try {
+      const params: any = {
+        workspaceId: args.workspaceId || args.projectId,
+        environment: args.environment,
+        path: args.path || '/',
+      };
+
+      await this.axiosInstance.delete(`/v1/folders/${args.folderId}`, { params });
+      return {
+        content: [{ type: 'text', text: `Folder deleted successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  // ========== SECRET TAGS ==========
+
+  async listSecretTags(args: any): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async getSecretTag(args: any): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async createSecretTag(args: any): Promise<any> {
+    try {
+      const data: any = {
+        name: args.name,
+        slug: args.slug,
+        color: args.color || '#000000',
+      };
+
+      const response = await this.axiosInstance.post(`/v1/workspace/${args.workspaceId || args.projectId}/tags`, data);
+      return {
+        content: [{ type: 'text', text: `Secret tag '${args.name}' created successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async updateSecretTag(args: any): Promise<any> {
+    try {
+      const data: any = {};
+      
+      if (args.name !== undefined) data.name = args.name;
+      if (args.slug !== undefined) data.slug = args.slug;
+      if (args.color !== undefined) data.color = args.color;
+
+      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`, data);
+      return {
+        content: [{ type: 'text', text: `Secret tag updated successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async deleteSecretTag(args: any): Promise<any> {
+    try {
+      await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
+      return {
+        content: [{ type: 'text', text: `Secret tag deleted successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  // ========== ORGANIZATION MANAGEMENT ==========
+
+  async getOrganizationMemberships(args: any): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(`/v2/organizations/${args.organizationId}/memberships`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async updateOrganizationMembership(args: any): Promise<any> {
+    try {
+      const data: any = {
+        role: args.role,
+      };
+
+      const response = await this.axiosInstance.patch(`/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`, data);
+      return {
+        content: [{ type: 'text', text: `Organization membership updated successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  async deleteOrganizationMembership(args: any): Promise<any> {
+    try {
+      await this.axiosInstance.delete(`/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`);
+      return {
+        content: [{ type: 'text', text: `Organization membership deleted successfully` }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+      };
+    }
+  }
+
+  // ========== AUDIT LOGS ==========
+
+  async getAuditLogs(args: any = {}): Promise<any> {
+    try {
+      const params: any = {
+        offset: args.offset || 0,
+        limit: args.limit || 20,
+      };
+
+      if (args.projectId) params.projectId = args.projectId;
+      if (args.environment) params.environment = args.environment;
+      if (args.actorType) params.actorType = args.actorType;
+      if (args.secretPath) params.secretPath = args.secretPath;
+      if (args.secretKey) params.secretKey = args.secretKey;
+      if (args.eventType) params.eventType = args.eventType;
+      if (args.userAgentType) params.userAgentType = args.userAgentType;
+      if (args.eventMetadata) params.eventMetadata = args.eventMetadata;
+      if (args.startDate) params.startDate = args.startDate;
+      if (args.endDate) params.endDate = args.endDate;
+      if (args.actor) params.actor = args.actor;
+
+      const response = await this.axiosInstance.get('/v1/organization/audit-logs', { params });
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
