@@ -2,27 +2,156 @@ import axios, { AxiosInstance } from 'axios';
 
 export interface InfisicalConfig {
   url: string;
-  token: string;
+  clientId: string;
+  clientSecret: string;
+  // Legacy support (deprecated)
+  token?: string;
+}
+
+interface AccessTokenData {
+  accessToken: string;
+  expiresIn: number;
+  accessTokenMaxTTL: number;
+  tokenType: string;
+  expiresAt: number; // Calculated field
 }
 
 export class InfisicalClient {
   private axiosInstance: AxiosInstance;
   private config: InfisicalConfig;
+  private accessTokenData: AccessTokenData | null = null;
+  private isAuthenticating = false;
 
   constructor(config: InfisicalConfig) {
     this.config = config;
     this.axiosInstance = axios.create({
       baseURL: `${config.url}/api`,
       headers: {
-        'Authorization': `Bearer ${config.token}`,
         'Content-Type': 'application/json',
       },
     });
+
+    // Legacy token support (deprecated)
+    if (config.token && !config.clientId && !config.clientSecret) {
+      console.warn('⚠️  WARNING: API tokens are deprecated. Please migrate to Universal Auth with Client ID and Client Secret.');
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${config.token}`;
+    }
+  }
+
+  /**
+   * Authenticate with Infisical using Universal Auth
+   */
+  private async authenticate(): Promise<void> {
+    if (this.isAuthenticating) {
+      // Wait for ongoing authentication
+      while (this.isAuthenticating) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return;
+    }
+
+    this.isAuthenticating = true;
+
+    try {
+      // Check if we're using legacy token auth
+      if (this.config.token && !this.config.clientId && !this.config.clientSecret) {
+        this.isAuthenticating = false;
+        return; // Already configured with legacy token
+      }
+
+      if (!this.config.clientId || !this.config.clientSecret) {
+        throw new Error('Client ID and Client Secret are required for Universal Auth');
+      }
+
+      const response = await axios.post(
+        `${this.config.url}/api/v1/auth/universal-auth/login`,
+        new URLSearchParams({
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );      const tokenData: AccessTokenData = {
+        ...response.data,
+        expiresAt: Date.now() + (response.data.expiresIn * 1000),
+      };
+      
+      this.accessTokenData = tokenData;
+
+      // Set the authorization header
+      this.axiosInstance.defaults.headers.common['Authorization'] = `${tokenData.tokenType} ${tokenData.accessToken}`;
+      
+      console.log(`✅ Infisical Universal Auth successful. Token expires in ${tokenData.expiresIn} seconds.`);
+    } catch (error: any) {
+      throw new Error(`Failed to authenticate with Infisical: ${error.response?.data?.message || error.message}`);
+    } finally {
+      this.isAuthenticating = false;
+    }
+  }
+
+  /**
+   * Renew the access token before it expires
+   */
+  private async renewToken(): Promise<void> {
+    if (!this.accessTokenData) {
+      throw new Error('No access token to renew');
+    }
+
+    try {
+      const response = await axios.post(
+        `${this.config.url}/api/v1/auth/universal-auth/renew`,
+        {},
+        {
+          headers: {
+            'Authorization': `${this.accessTokenData.tokenType} ${this.accessTokenData.accessToken}`,
+          },
+        }
+      );      const newTokenData: AccessTokenData = {
+        ...response.data,
+        expiresAt: Date.now() + (response.data.expiresIn * 1000),
+      };
+
+      this.accessTokenData = newTokenData;
+      this.axiosInstance.defaults.headers.common['Authorization'] = `${newTokenData.tokenType} ${newTokenData.accessToken}`;
+      
+      console.log(`🔄 Infisical token renewed. New expiration in ${newTokenData.expiresIn} seconds.`);
+    } catch (error: any) {
+      console.warn('Failed to renew token, will re-authenticate:', error.message);
+      this.accessTokenData = null;
+      await this.authenticate();
+    }
+  }
+
+  /**
+   * Ensure we have a valid access token
+   */
+  private async ensureAuthenticated(): Promise<void> {
+    // If using legacy token auth, skip Universal Auth
+    if (this.config.token && !this.config.clientId && !this.config.clientSecret) {
+      return;
+    }
+
+    // If we don't have a token, authenticate
+    if (!this.accessTokenData) {
+      await this.authenticate();
+      return;
+    }
+
+    // Check if token will expire in the next 60 seconds
+    const bufferTime = 60 * 1000; // 60 seconds buffer
+    if (Date.now() + bufferTime >= this.accessTokenData.expiresAt) {
+      console.log('🔄 Access token expiring soon, renewing...');
+      await this.renewToken();
+    }
   }
 
   // ========== SECRET MANAGEMENT ==========
-  
-  async listSecrets(args: any): Promise<any> {
+    async listSecrets(args: any): Promise<any> {
+    await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -48,8 +177,9 @@ export class InfisicalClient {
       };
     }
   }
-
   async getSecret(args: any): Promise<any> {
+    await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -72,8 +202,9 @@ export class InfisicalClient {
       };
     }
   }
-
   async createSecret(args: any): Promise<any> {
+    await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -100,8 +231,9 @@ export class InfisicalClient {
       };
     }
   }
-
   async updateSecret(args: any): Promise<any> {
+    await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -128,8 +260,9 @@ export class InfisicalClient {
       };
     }
   }
-
   async deleteSecret(args: any): Promise<any> {
+    await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -151,7 +284,8 @@ export class InfisicalClient {
 
   // ========== PROJECT MANAGEMENT ==========
 
-  async listProjects(args: any = {}): Promise<any> {
+  async listProjects(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get('/v2/workspace');
       return {
@@ -165,6 +299,7 @@ export class InfisicalClient {
   }
 
   async createProject(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         projectName: args.projectName || args.name,
@@ -189,6 +324,7 @@ export class InfisicalClient {
   }
 
   async getProject(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}`);
       return {
@@ -202,6 +338,7 @@ export class InfisicalClient {
   }
 
   async updateProject(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {};
       
@@ -220,6 +357,7 @@ export class InfisicalClient {
   }
 
   async deleteProject(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}`);
       return {
@@ -235,6 +373,7 @@ export class InfisicalClient {
   // ========== ENVIRONMENT MANAGEMENT ==========
 
   async listEnvironments(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/environments`);
       return {
@@ -248,6 +387,7 @@ export class InfisicalClient {
   }
 
   async createEnvironment(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         name: args.name,
@@ -267,6 +407,7 @@ export class InfisicalClient {
   }
 
   async updateEnvironment(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {};
       
@@ -286,6 +427,7 @@ export class InfisicalClient {
   }
 
   async deleteEnvironment(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`);
       return {
@@ -301,6 +443,7 @@ export class InfisicalClient {
   // ========== FOLDER MANAGEMENT ==========
 
   async listFolders(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -324,6 +467,7 @@ export class InfisicalClient {
   }
 
   async getFolder(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v1/folders/${args.folderId}`);
       return {
@@ -337,6 +481,7 @@ export class InfisicalClient {
   }
 
   async createFolder(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -357,6 +502,7 @@ export class InfisicalClient {
   }
 
   async updateFolder(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {};
       
@@ -374,6 +520,7 @@ export class InfisicalClient {
   }
 
   async deleteFolder(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         workspaceId: args.workspaceId || args.projectId,
@@ -395,6 +542,7 @@ export class InfisicalClient {
   // ========== SECRET TAGS ==========
 
   async listSecretTags(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags`);
       return {
@@ -408,6 +556,7 @@ export class InfisicalClient {
   }
 
   async getSecretTag(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
       return {
@@ -421,6 +570,7 @@ export class InfisicalClient {
   }
 
   async createSecretTag(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         name: args.name,
@@ -440,6 +590,7 @@ export class InfisicalClient {
   }
 
   async updateSecretTag(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {};
       
@@ -459,6 +610,7 @@ export class InfisicalClient {
   }
 
   async deleteSecretTag(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
       return {
@@ -474,6 +626,7 @@ export class InfisicalClient {
   // ========== ORGANIZATION MANAGEMENT ==========
 
   async getOrganizationMemberships(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const response = await this.axiosInstance.get(`/v2/organizations/${args.organizationId}/memberships`);
       return {
@@ -487,6 +640,7 @@ export class InfisicalClient {
   }
 
   async updateOrganizationMembership(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const data: any = {
         role: args.role,
@@ -504,6 +658,7 @@ export class InfisicalClient {
   }
 
   async deleteOrganizationMembership(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       await this.axiosInstance.delete(`/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`);
       return {
@@ -518,7 +673,8 @@ export class InfisicalClient {
 
   // ========== AUDIT LOGS ==========
 
-  async getAuditLogs(args: any = {}): Promise<any> {
+  async getAuditLogs(args: any): Promise<any> {
+    await this.ensureAuthenticated();
     try {
       const params: any = {
         offset: args.offset || 0,

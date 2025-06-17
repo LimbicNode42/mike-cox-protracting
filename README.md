@@ -48,21 +48,94 @@ export KEYCLOAK_REALM="master"  # optional, defaults to 'master'
 ```
 
 ### Infisical Configuration
+
+#### Option 1: Universal Auth (Recommended - New Method)
+Infisical's new Universal Auth provides secure machine-to-machine authentication:
+
 ```bash
 export INFISICAL_URL="https://your-infisical-instance.com"
-export INFISICAL_TOKEN="your-api-token"
+export INFISICAL_CLIENT_ID="your-client-id"
+export INFISICAL_CLIENT_SECRET="your-client-secret"
 ```
 
-### Keycloak-Infisical Integration Configuration
-Enable automatic storage of Keycloak secrets in Infisical:
+**Setting up Universal Auth:**
+1. Go to your Infisical Organization Settings > Access Control > Identities
+2. Create a new Machine Identity with appropriate role
+3. Configure Universal Auth for the identity (enabled by default)
+4. Create a Client Secret for the identity
+5. Use the Client ID and Client Secret in your environment variables
+
+#### Option 2: API Token (Legacy - Deprecated)
+For backward compatibility only:
+
 ```bash
-export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
-export KEYCLOAK_INFISICAL_PROJECT_ID="your-infisical-project-id"
-export KEYCLOAK_INFISICAL_ENVIRONMENT="dev"  # optional, defaults to 'dev'
-export KEYCLOAK_INFISICAL_SECRET_PREFIX="KEYCLOAK_"  # optional, defaults to 'KEYCLOAK_'
-export KEYCLOAK_INFISICAL_FOLDER_PATH="/keycloak"  # optional, defaults to '/keycloak'
-export KEYCLOAK_INFISICAL_AUTO_TAGS="keycloak,auto-generated"  # optional, comma-separated tags
+export INFISICAL_URL="https://your-infisical-instance.com"
+export INFISICAL_TOKEN="your-api-token"  # Only if not using Universal Auth
 ```
+
+⚠️ **API tokens are deprecated by Infisical**. Please migrate to Universal Auth for better security and functionality.
+
+## 🔄 Migration Guide: API Token → Universal Auth
+
+If you're currently using the deprecated API token method, here's how to migrate:
+
+### Step 1: Create a Machine Identity in Infisical
+1. Navigate to your Infisical dashboard
+2. Go to **Organization Settings** > **Access Control** > **Identities**
+3. Click **"Create Identity"**
+4. Choose a name and assign appropriate organization role
+5. Save the identity
+
+### Step 2: Configure Universal Auth
+1. On the identity page, Universal Auth is enabled by default
+2. Optionally configure **Access Token TTL** and **Max TTL** (defaults are usually fine)
+3. Configure **Client Secret Trusted IPs** if you need IP restrictions
+4. Click **"Create Client Secret"**
+5. **Important**: Copy the Client Secret immediately (it won't be shown again)
+
+### Step 3: Add Identity to Projects
+1. Go to each project where you need access
+2. Navigate to **Project Settings** > **Access Control** > **Machine Identities**
+3. Click **"Add Identity"**
+4. Select your identity and assign appropriate project role
+5. Save the configuration
+
+### Step 4: Update Environment Variables
+Replace your old configuration:
+```bash
+# OLD (remove these)
+INFISICAL_TOKEN=your-api-token
+
+# NEW (add these)
+INFISICAL_CLIENT_ID=your-client-id-from-step-2
+INFISICAL_CLIENT_SECRET=your-client-secret-from-step-2
+```
+
+### Step 5: Test and Deploy
+1. Test the connection in a development environment first
+2. Verify all operations work correctly
+3. Deploy to production
+4. Remove the old API token from Infisical dashboard
+
+**Benefits of Migration:**
+- ✅ Future-proof authentication method
+- ✅ Better security with automatic token rotation
+- ✅ Configurable token TTL and access controls
+- ✅ IP-based access restrictions (if needed)
+- ✅ Audit trail for authentication events
+
+### Keycloak-Infisical Integration Configuration
+Enable automatic storage of Keycloak secrets in Infisical with simplified configuration:
+```bash
+# Simply enable the integration - project and folder are auto-managed
+export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
+```
+
+**Auto-Discovery Features:**
+- ✅ Automatically finds or creates "Keycloak Secrets" project in Infisical
+- ✅ Automatically creates `/keycloak` folder for secret organization
+- ✅ No manual project or folder configuration required
+- ✅ Seamless secret storage with auto-generated naming and tagging
 
 ## Usage Examples
 
@@ -153,8 +226,7 @@ Add to your `.vscode/mcp.json`:
 
 ```json
 {
-  "servers": {
-    "keycloak-infisical": {
+  "servers": {    "keycloak-infisical": {
       "command": "node",
       "args": ["path/to/mike-cox-protracting/dist/index.js"],
       "env": {
@@ -162,10 +234,9 @@ Add to your `.vscode/mcp.json`:
         "KEYCLOAK_USERNAME": "admin",
         "KEYCLOAK_PASSWORD": "your-password",
         "INFISICAL_URL": "https://your-infisical-instance.com",
-        "INFISICAL_TOKEN": "your-token",
-        "KEYCLOAK_INFISICAL_INTEGRATION_ENABLED": "true",
-        "KEYCLOAK_INFISICAL_PROJECT_ID": "your-project-id",
-        "KEYCLOAK_INFISICAL_ENVIRONMENT": "dev"
+        "INFISICAL_CLIENT_ID": "your-client-id",
+        "INFISICAL_CLIENT_SECRET": "your-client-secret",
+        "KEYCLOAK_INFISICAL_INTEGRATION_ENABLED": "true"
       }
     }
   }
@@ -406,21 +477,18 @@ All auto-generated secrets are organized with:
 
 ### 🛠️ Configuration
 
-Enable the integration with environment variables:
+Enable the integration with a simple environment variable:
 
 ```bash
-# Enable the integration
+# Enable the integration - project and folder are auto-managed
 export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
-
-# Required: Infisical project where secrets will be stored
-export KEYCLOAK_INFISICAL_PROJECT_ID="your-project-id"
-
-# Optional configurations
-export KEYCLOAK_INFISICAL_ENVIRONMENT="production"      # Default: "dev"
-export KEYCLOAK_INFISICAL_SECRET_PREFIX="KC_"           # Default: "KEYCLOAK_"
-export KEYCLOAK_INFISICAL_FOLDER_PATH="/identity"       # Default: "/keycloak"
-export KEYCLOAK_INFISICAL_AUTO_TAGS="identity,secrets"  # Default: "keycloak,auto-generated"
 ```
+
+**Auto-Discovery Features:**
+- ✅ Automatically finds or creates "Keycloak Secrets" project
+- ✅ Automatically creates `/keycloak` folder for organization
+- ✅ Automatically applies consistent naming and tagging
+- ✅ No manual project or folder configuration needed
 
 ### 🎯 Usage Examples
 

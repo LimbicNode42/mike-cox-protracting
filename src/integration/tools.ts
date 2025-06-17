@@ -3,46 +3,21 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const integrationTools: Tool[] = [
   {
     name: 'keycloak_infisical_configure_integration',
-    description: 'Configure the Keycloak-Infisical integration settings',
+    description: 'Configure the Keycloak-Infisical integration settings with auto-discovery',
     inputSchema: {
       type: 'object',
       properties: {
         enabled: { 
           type: 'boolean', 
-          description: 'Enable or disable the integration' 
-        },
-        infisicalProjectId: { 
-          type: 'string', 
-          description: 'Infisical project ID for storing Keycloak secrets' 
-        },
-        infisicalEnvironment: { 
-          type: 'string', 
-          description: 'Infisical environment (e.g., dev, staging, prod)',
-          default: 'dev'
-        },
-        secretPrefix: { 
-          type: 'string', 
-          description: 'Prefix for auto-generated secret names',
-          default: 'KEYCLOAK_'
-        },
-        folderPath: { 
-          type: 'string', 
-          description: 'Folder path in Infisical for storing secrets',
-          default: '/keycloak'
-        },
-        autoTagSlugs: { 
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Tags to apply to auto-generated secrets',
-          default: ['keycloak', 'auto-generated']
+          description: 'Enable or disable the integration. When enabled, the system will auto-discover or create a "Keycloak Secrets" project and "/keycloak" folder.' 
         }
       },
-      required: []
+      required: ['enabled']
     }
   },
   {
     name: 'keycloak_infisical_get_integration_status',
-    description: 'Get the current status and configuration of the Keycloak-Infisical integration',
+    description: 'Get the current status and configuration of the Keycloak-Infisical integration with auto-discovery details',
     inputSchema: {
       type: 'object',
       properties: {},

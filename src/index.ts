@@ -51,34 +51,40 @@ function initializeClients() {
       realm: keycloakRealm,
     });
   }
-
   const infisicalUrl = process.env.INFISICAL_URL;
-  const infisicalToken = process.env.INFISICAL_TOKEN;
+  const infisicalClientId = process.env.INFISICAL_CLIENT_ID;
+  const infisicalClientSecret = process.env.INFISICAL_CLIENT_SECRET;
+  const infisicalToken = process.env.INFISICAL_TOKEN; // Legacy support
 
-  if (infisicalUrl && infisicalToken) {
+  // Prioritize Universal Auth (Client ID + Secret) over legacy token
+  if (infisicalUrl && infisicalClientId && infisicalClientSecret) {
     infisicalClient = new InfisicalClient({
       url: infisicalUrl,
+      clientId: infisicalClientId,
+      clientSecret: infisicalClientSecret,
+    });
+    console.log('Infisical client initialized with Universal Auth');
+  } else if (infisicalUrl && infisicalToken) {
+    infisicalClient = new InfisicalClient({
+      url: infisicalUrl,
+      clientId: '', // Not used for legacy auth
+      clientSecret: '', // Not used for legacy auth
       token: infisicalToken,
     });
+    console.warn('⚠️  Infisical client initialized with deprecated API token. Please migrate to Universal Auth.');
   }
-
   // Initialize integration if both clients are available
   if (keycloakClient && infisicalClient) {
     const integrationConfig: IntegrationConfig = {
       enabled: process.env.KEYCLOAK_INFISICAL_INTEGRATION_ENABLED === 'true',
-      infisicalProjectId: process.env.KEYCLOAK_INFISICAL_PROJECT_ID,
-      infisicalEnvironment: process.env.KEYCLOAK_INFISICAL_ENVIRONMENT || 'dev',
-      secretPrefix: process.env.KEYCLOAK_INFISICAL_SECRET_PREFIX || 'KEYCLOAK_',
-      folderPath: process.env.KEYCLOAK_INFISICAL_FOLDER_PATH || '/keycloak',
-      autoTagSlugs: process.env.KEYCLOAK_INFISICAL_AUTO_TAGS?.split(',') || ['keycloak', 'auto-generated']
     };
 
     integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
     
-    if (integration.isEnabled()) {
-      console.log('Keycloak-Infisical integration enabled');
+    if (integrationConfig.enabled) {
+      console.log('Keycloak-Infisical integration enabled with auto-discovery');
     } else {
-      console.log('Keycloak-Infisical integration disabled or not configured');
+      console.log('Keycloak-Infisical integration disabled');
     }
   }
 }
