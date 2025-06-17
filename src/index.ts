@@ -5,12 +5,16 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { KeycloakClient } from './keycloak/client.js';
 import { InfisicalClient } from './infisical/client.js';
 import { keycloakTools } from './keycloak/tools.js';
 import { infisicalTools } from './infisical/tools.js';
+import { keycloakResources } from './keycloak/resources.js';
+import { infisicalResources } from './infisical/resources.js';
 
 const server = new Server(
   {
@@ -20,6 +24,7 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
@@ -75,25 +80,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    // Keycloak tools
+    // Keycloak tools (only write operations)
     if (name.startsWith('keycloak_') && keycloakClient) {
       switch (name) {
-        case 'keycloak_list_users':
-          return await keycloakClient.listUsers(args);
         case 'keycloak_create_user':
           return await keycloakClient.createUser(args);
-        case 'keycloak_get_user':
-          return await keycloakClient.getUser(args);
         case 'keycloak_update_user':
           return await keycloakClient.updateUser(args);
         case 'keycloak_delete_user':
           return await keycloakClient.deleteUser(args);
-        case 'keycloak_list_roles':
-          return await keycloakClient.listRoles(args);
         case 'keycloak_assign_role':
           return await keycloakClient.assignRole(args);
-        case 'keycloak_list_clients':
-          return await keycloakClient.listClients(args);
         case 'keycloak_create_client':
           return await keycloakClient.createClient(args);
         default:
@@ -101,25 +98,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
-    // Infisical tools
+    // Infisical tools (only write operations)
     if (name.startsWith('infisical_') && infisicalClient) {
       switch (name) {
-        case 'infisical_list_secrets':
-          return await infisicalClient.listSecrets(args);
-        case 'infisical_get_secret':
-          return await infisicalClient.getSecret(args);
         case 'infisical_create_secret':
           return await infisicalClient.createSecret(args);
         case 'infisical_update_secret':
           return await infisicalClient.updateSecret(args);
         case 'infisical_delete_secret':
           return await infisicalClient.deleteSecret(args);
-        case 'infisical_list_projects':
-          return await infisicalClient.listProjects(args);
         case 'infisical_create_project':
           return await infisicalClient.createProject(args);
-        case 'infisical_list_environments':
-          return await infisicalClient.listEnvironments(args);
         default:
           throw new Error(`Unknown Infisical tool: ${name}`);
       }
@@ -134,6 +123,85 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           text: `Error executing ${name}: ${error instanceof Error ? error.message : String(error)}`,
         },
       ],
+    };
+  }
+});
+
+// List available resources
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  const resources = [];
+  
+  if (keycloakClient) {
+    resources.push(...keycloakResources);
+  }
+  
+  if (infisicalClient) {
+    resources.push(...infisicalResources);
+  }
+
+  return { resources };
+});
+
+// Handle resource reading
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+
+  try {
+    // Parse the URI to determine what resource to read
+    const url = new URL(uri);
+    
+    if (url.protocol === 'keycloak:' && keycloakClient) {
+      const path = url.pathname.slice(1); // Remove leading slash
+      const searchParams = new URLSearchParams(url.search);
+      
+      if (path === 'users') {
+        const realm = searchParams.get('realm') || 'master';
+        const max = parseInt(searchParams.get('max') || '100');
+        const search = searchParams.get('search') || undefined;
+        return await keycloakClient.listUsers({ realm, max, search });
+      } else if (path.startsWith('user/')) {
+        const userId = path.split('/')[1];
+        const realm = searchParams.get('realm') || 'master';
+        return await keycloakClient.getUser({ realm, userId });
+      } else if (path === 'roles') {
+        const realm = searchParams.get('realm') || 'master';
+        const clientId = searchParams.get('clientId') || undefined;
+        return await keycloakClient.listRoles({ realm, clientId });
+      } else if (path === 'clients') {
+        const realm = searchParams.get('realm') || 'master';
+        return await keycloakClient.listClients({ realm });
+      }
+    } else if (url.protocol === 'infisical:' && infisicalClient) {
+      const path = url.pathname.slice(1); // Remove leading slash
+      const searchParams = new URLSearchParams(url.search);
+      
+      if (path === 'secrets') {
+        const projectId = searchParams.get('projectId');
+        const environment = searchParams.get('environment') || 'dev';
+        if (!projectId) throw new Error('projectId is required');
+        return await infisicalClient.listSecrets({ projectId, environment });
+      } else if (path.startsWith('secret/')) {
+        const secretName = path.split('/')[1];
+        const projectId = searchParams.get('projectId');
+        const environment = searchParams.get('environment') || 'dev';
+        if (!projectId) throw new Error('projectId is required');
+        return await infisicalClient.getSecret({ projectId, environment, secretName });
+      } else if (path === 'projects') {
+        return await infisicalClient.listProjects({});
+      } else if (path.startsWith('environments/')) {
+        const projectId = path.split('/')[1];
+        return await infisicalClient.listEnvironments({ projectId });
+      }
+    }
+    
+    throw new Error(`Unknown resource: ${uri}`);
+  } catch (error: any) {
+    return {
+      contents: [{
+        uri,
+        text: `Error: ${error.message}`,
+        mimeType: 'text/plain'
+      }]
     };
   }
 });

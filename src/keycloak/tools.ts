@@ -2,29 +2,6 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export const keycloakTools: Tool[] = [
   {
-    name: 'keycloak_list_users',
-    description: 'List users in a Keycloak realm',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        realm: {
-          type: 'string',
-          description: 'Keycloak realm name',
-          default: 'master'
-        },
-        max: {
-          type: 'number',
-          description: 'Maximum number of users to return',
-          default: 100
-        },
-        search: {
-          type: 'string',
-          description: 'Search term for filtering users'
-        }
-      }
-    }
-  },
-  {
     name: 'keycloak_create_user',
     description: 'Create a new user in Keycloak',
     inputSchema: {
@@ -67,28 +44,6 @@ export const keycloakTools: Tool[] = [
         }
       },
       required: ['username', 'email']
-    }
-  },
-  {
-    name: 'keycloak_get_user',
-    description: 'Get user details from Keycloak',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        realm: {
-          type: 'string',
-          description: 'Keycloak realm name',
-          default: 'master'
-        },
-        userId: {
-          type: 'string',
-          description: 'User ID to retrieve'
-        },
-        username: {
-          type: 'string',
-          description: 'Username to retrieve (alternative to userId)'
-        }
-      }
     }
   },
   {
@@ -146,24 +101,6 @@ export const keycloakTools: Tool[] = [
     }
   },
   {
-    name: 'keycloak_list_roles',
-    description: 'List roles in a Keycloak realm',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        realm: {
-          type: 'string',
-          description: 'Keycloak realm name',
-          default: 'master'
-        },
-        clientId: {
-          type: 'string',
-          description: 'Client ID to list client-specific roles'
-        }
-      }
-    }
-  },
-  {
     name: 'keycloak_assign_role',
     description: 'Assign role to a user in Keycloak',
     inputSchema: {
@@ -188,20 +125,6 @@ export const keycloakTools: Tool[] = [
         }
       },
       required: ['userId', 'roleName']
-    }
-  },
-  {
-    name: 'keycloak_list_clients',
-    description: 'List clients in a Keycloak realm',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        realm: {
-          type: 'string',
-          description: 'Keycloak realm name',
-          default: 'master'
-        }
-      }
     }
   },
   {
