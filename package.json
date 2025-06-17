@@ -27,9 +27,8 @@
     "iam"
   ],
   "author": "LimbicNode42",
-  "license": "MIT",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
+  "license": "MIT",  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.3",
     "axios": "^1.7.7",
     "dotenv": "^16.5.0",
     "zod": "^3.23.8"

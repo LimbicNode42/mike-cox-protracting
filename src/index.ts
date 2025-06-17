@@ -12,15 +12,15 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
   Tool,
+  Resource,
 } from '@modelcontextprotocol/sdk/types.js';
 import { KeycloakClient } from './keycloak/client.js';
 import { InfisicalClient } from './infisical/client.js';
-import { keycloakTools } from './keycloak/tools.js';
-import { infisicalTools } from './infisical/tools.js';
-import { keycloakResources } from './keycloak/resources.js';
-import { infisicalResources } from './infisical/resources.js';
 import { KeycloakInfisicalIntegration, IntegrationConfig } from './integration/keycloak-infisical.js';
-import { integrationTools } from './integration/tools.js';
+import { keycloakResources } from './keycloak/resources.js';
+import { keycloakTools } from './keycloak/tools.js';
+import { infisicalResources } from './infisical/resources.js';
+import { infisicalTools } from './infisical/tools.js';
 
 const server = new Server(
   {
@@ -55,6 +55,7 @@ function initializeClients() {
       realm: keycloakRealm,
     });
   }
+
   const infisicalUrl = process.env.INFISICAL_URL;
   const infisicalClientId = process.env.INFISICAL_CLIENT_ID;
   const infisicalClientSecret = process.env.INFISICAL_CLIENT_SECRET;
@@ -77,6 +78,7 @@ function initializeClients() {
     });
     console.warn('⚠️  Infisical client initialized with deprecated API token. Please migrate to Universal Auth.');
   }
+
   // Initialize integration if both clients are available
   if (keycloakClient && infisicalClient) {
     const integrationConfig: IntegrationConfig = {
@@ -93,498 +95,442 @@ function initializeClients() {
   }
 }
 
-// List available tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const tools: Tool[] = [];
-  
-  if (keycloakClient) {
-    tools.push(...keycloakTools);
-  }
-  
-  if (infisicalClient) {
-    tools.push(...infisicalTools);
-  }
+// Define available resources
+const resources: Resource[] = [
+  ...keycloakResources,
+  ...infisicalResources
+];
 
-  // Add integration tools if both clients are available
-  if (keycloakClient && infisicalClient) {
-    tools.push(...integrationTools);
-  }
+// Define available tools
+const tools: Tool[] = [
+  ...keycloakTools,
+  ...infisicalTools
+];
 
-  return { tools };
-});
-
-// Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {    // Keycloak tools (only write operations)
-    if (name.startsWith('keycloak_') && keycloakClient) {
-      switch (name) {
-        // Realm management
-        case 'keycloak_create_realm':
-          return await keycloakClient.createRealm(args);
-        case 'keycloak_update_realm':
-          return await keycloakClient.updateRealm(args);
-        case 'keycloak_delete_realm':
-          return await keycloakClient.deleteRealm(args);        // User management
-        case 'keycloak_create_user':
-          const userResult = await keycloakClient.createUser(args);
-          // Auto-store user credentials in Infisical if integration is enabled
-          if (integration?.isEnabled() && args && args.password) {
-            await integration.storeUserCredentials(args, (args.realm as string) || 'master', args.password as string);
-          }
-          return userResult;
-        case 'keycloak_update_user':
-          return await keycloakClient.updateUser(args);
-        case 'keycloak_delete_user':
-          return await keycloakClient.deleteUser(args);
-          // Client management
-        case 'keycloak_create_client':
-          const clientResult = await keycloakClient.createClient(args);
-          // Auto-store client secret in Infisical if integration is enabled
-          if (integration?.isEnabled() && args && clientResult.clientData) {
-            await integration.storeClientSecret(clientResult.clientData, (args.realm as string) || 'master');
-          }
-          return clientResult;
-        case 'keycloak_update_client':
-          return await keycloakClient.updateClient(args);
-        case 'keycloak_delete_client':
-          return await keycloakClient.deleteClient(args);
-        
-        // Role management
-        case 'keycloak_create_role':
-          return await keycloakClient.createRole(args);
-        case 'keycloak_update_role':
-          return await keycloakClient.updateRole(args);
-        case 'keycloak_delete_role':
-          return await keycloakClient.deleteRole(args);
-        case 'keycloak_create_client_role':
-          return await keycloakClient.createClientRole(args);
-        
-        // Role assignment
-        case 'keycloak_assign_realm_role':
-          return await keycloakClient.assignRealmRoleToUser(args);
-        case 'keycloak_assign_client_role':
-          return await keycloakClient.assignClientRoleToUser(args);
-        case 'keycloak_assign_role': // Backward compatibility
-          return await keycloakClient.assignRole(args);
-        
-        // Group management
-        case 'keycloak_create_group':
-          return await keycloakClient.createGroup(args);
-        case 'keycloak_update_group':
-          return await keycloakClient.updateGroup(args);
-        case 'keycloak_delete_group':
-          return await keycloakClient.deleteGroup(args);
-          // Identity provider management
-        case 'keycloak_create_identity_provider':
-          const idpResult = await keycloakClient.createIdentityProvider(args);
-          // Auto-store identity provider client secret in Infisical if integration is enabled
-          if (integration?.isEnabled() && args) {
-            await integration.storeIdentityProviderSecret(args, (args.realm as string) || 'master');
-          }
-          return idpResult;
-        case 'keycloak_update_identity_provider':
-          return await keycloakClient.updateIdentityProvider(args);
-        case 'keycloak_delete_identity_provider':
-          return await keycloakClient.deleteIdentityProvider(args);
-        
-        // Client scope management
-        case 'keycloak_create_client_scope':
-          return await keycloakClient.createClientScope(args);
-        
-        // Authentication flow management
-        case 'keycloak_create_authentication_flow':
-          return await keycloakClient.createAuthenticationFlow(args);
-        
-        // Organization management
-        case 'keycloak_create_organization':
-          return await keycloakClient.createOrganization(args);
-        
-        default:
-          throw new Error(`Unknown Keycloak tool: ${name}`);
-      }
-    }    // Infisical tools (only write operations)
-    if (name.startsWith('infisical_') && infisicalClient) {
-      switch (name) {
-        // Secret management
-        case 'infisical_create_secret':
-          return await infisicalClient.createSecret(args);
-        case 'infisical_update_secret':
-          return await infisicalClient.updateSecret(args);
-        case 'infisical_delete_secret':
-          return await infisicalClient.deleteSecret(args);
-        
-        // Project management
-        case 'infisical_create_project':
-          return await infisicalClient.createProject(args);
-        case 'infisical_update_project':
-          return await infisicalClient.updateProject(args);
-        case 'infisical_delete_project':
-          return await infisicalClient.deleteProject(args);
-        
-        // Environment management
-        case 'infisical_create_environment':
-          return await infisicalClient.createEnvironment(args);
-        case 'infisical_update_environment':
-          return await infisicalClient.updateEnvironment(args);
-        case 'infisical_delete_environment':
-          return await infisicalClient.deleteEnvironment(args);
-        
-        // Folder management
-        case 'infisical_create_folder':
-          return await infisicalClient.createFolder(args);
-        case 'infisical_update_folder':
-          return await infisicalClient.updateFolder(args);
-        case 'infisical_delete_folder':
-          return await infisicalClient.deleteFolder(args);
-        
-        // Secret tag management
-        case 'infisical_create_secret_tag':
-          return await infisicalClient.createSecretTag(args);
-        case 'infisical_update_secret_tag':
-          return await infisicalClient.updateSecretTag(args);
-        case 'infisical_delete_secret_tag':
-          return await infisicalClient.deleteSecretTag(args);
-        
-        // Organization management
-        case 'infisical_update_organization_membership':
-          return await infisicalClient.updateOrganizationMembership(args);
-        case 'infisical_delete_organization_membership':
-          return await infisicalClient.deleteOrganizationMembership(args);
-          default:
-          throw new Error(`Unknown Infisical tool: ${name}`);
-      }
-    }
-
-    // Integration tools (require both clients)
-    if (name.startsWith('keycloak_infisical_') && keycloakClient && infisicalClient) {
-      switch (name) {        case 'keycloak_infisical_configure_integration':
-          if (!integration) {
-            const integrationConfig: IntegrationConfig = { enabled: false };
-            integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
-          }
-          if (args) {
-            integration.updateConfig(args as Partial<IntegrationConfig>);
-          }
-          return {
-            content: [{ type: 'text', text: `Integration configuration updated. Enabled: ${integration.isEnabled()}` }],
-          };
-
-        case 'keycloak_infisical_get_integration_status':
-          if (!integration) {
-            return {
-              content: [{ type: 'text', text: 'Integration not initialized. Both Keycloak and Infisical clients are required.' }],
-            };
-          }
-          const config = integration.getConfig();
-          return {
-            content: [{ type: 'text', text: JSON.stringify(config, null, 2) }],
-          };        case 'keycloak_infisical_store_existing_secret':
-          if (!integration?.isEnabled()) {
-            return {
-              content: [{ type: 'text', text: 'Integration is not enabled or not configured.' }],
-            };
-          }
-          if (!args) {
-            throw new Error('Arguments are required for this tool');
-          }
-          await integration.storeGeneratedSecret(
-            args.secretName as string,
-            args.secretValue as string,
-            args.context as string,
-            (args.realm as string) || 'master'
-          );
-          return {
-            content: [{ type: 'text', text: `Secret '${args.secretName}' stored in Infisical successfully` }],
-          };
-
-        default:
-          throw new Error(`Unknown integration tool: ${name}`);
-      }
-    }
-
-    throw new Error(`Tool not available or client not configured: ${name}`);
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error executing ${name}: ${error instanceof Error ? error.message : String(error)}`,
-        },
-      ],
-    };
-  }
-});
-
-// List available resources
+// List resources handler
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  const resources = [];
-  
-  if (keycloakClient) {
-    resources.push(...keycloakResources);
-  }
-  
-  if (infisicalClient) {
-    resources.push(...infisicalResources);
-  }
-
   return { resources };
 });
 
-// Handle resource reading
+// Read resource handler
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
   try {
-    // Parse the URI to determine what resource to read
-    const url = new URL(uri);
-      if (url.protocol === 'keycloak:' && keycloakClient) {
-      const path = url.pathname.slice(1); // Remove leading slash
-      const searchParams = new URLSearchParams(url.search);
-      
-      // Realm resources
-      if (path === 'realms') {
-        return await keycloakClient.listRealms();
-      } else if (path.startsWith('realm/')) {
-        const realm = path.split('/')[1];
-        return await keycloakClient.getRealm({ realm });
+    // Parse custom protocol URL safely
+    const queryStart = uri.indexOf('?');
+    const searchParams = queryStart >= 0 ? new URLSearchParams(uri.substring(queryStart)) : new URLSearchParams();
+
+    if (uri.startsWith('keycloak://')) {
+      if (!keycloakClient) {
+        throw new Error('Keycloak client not configured');
       }
-      
-      // User resources
-      else if (path === 'users') {
+
+      // ========== REALM RESOURCES ==========
+      if (uri === 'keycloak://realms') {
+        const result = await keycloakClient.listRealms();
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/realm\/([^?]+)/)) {
+        const realm = uri.match(/^keycloak:\/\/realm\/([^?]+)/)?.[1];
+        if (!realm) throw new Error('Realm name is required');
+        const result = await keycloakClient.getRealm({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }
+
+      // ========== USER RESOURCES ==========
+      else if (uri.startsWith('keycloak://users')) {
         const realm = searchParams.get('realm') || 'master';
         const max = parseInt(searchParams.get('max') || '100');
         const search = searchParams.get('search') || undefined;
         const first = parseInt(searchParams.get('first') || '0');
-        return await keycloakClient.listUsers({ realm, max, search, first });
-      } else if (path.startsWith('user/')) {
-        const userId = path.split('/')[1];
+        
+        const result = await keycloakClient.listUsers({ realm, max, search, first });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/user\/([^?]+)/)) {
+        const userId = uri.match(/^keycloak:\/\/user\/([^?]+)/)?.[1];
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.getUser({ realm, userId });
-      } else if (path === 'users/count') {
+        if (!userId) throw new Error('User ID is required');
+        const result = await keycloakClient.getUser({ realm, userId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.startsWith('keycloak://users/count')) {
         const realm = searchParams.get('realm') || 'master';
-        const search = searchParams.get('search') || undefined;
-        return await keycloakClient.getUserCount({ realm, search });
+        const result = await keycloakClient.getUserCount({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Client resources
-      else if (path === 'clients') {
+
+      // ========== CLIENT RESOURCES ==========
+      else if (uri.startsWith('keycloak://clients')) {
         const realm = searchParams.get('realm') || 'master';
         const clientId = searchParams.get('clientId') || undefined;
         const max = parseInt(searchParams.get('max') || '100');
         const first = parseInt(searchParams.get('first') || '0');
-        return await keycloakClient.listClients({ realm, clientId, max, first });
-      } else if (path.startsWith('client/')) {
-        const clientUuid = path.split('/')[1];
-        const realm = searchParams.get('realm') || 'master';
         
-        // Check if this is a client roles request
-        if (path.endsWith('/roles')) {
-          return await keycloakClient.listClientRoles({ realm, clientUuid });
-        } else {
-          return await keycloakClient.getClient({ realm, clientUuid });
-        }
+        const result = await keycloakClient.listClients({ realm, clientId, max, first });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/client\/([^?]+)/)) {
+        const clientUuid = uri.match(/^keycloak:\/\/client\/([^?]+)/)?.[1];
+        const realm = searchParams.get('realm') || 'master';
+        if (!clientUuid) throw new Error('Client UUID is required');
+        const result = await keycloakClient.getClient({ realm, clientUuid });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Role resources
-      else if (path === 'roles') {
+
+      // ========== ROLE RESOURCES ==========
+      else if (uri.startsWith('keycloak://roles')) {
         const realm = searchParams.get('realm') || 'master';
-        const max = parseInt(searchParams.get('max') || '100');
-        const search = searchParams.get('search') || undefined;
-        return await keycloakClient.listRoles({ realm, max, search });
-      } else if (path.startsWith('role/')) {
-        const roleName = path.split('/')[1];
+        const result = await keycloakClient.listRoles({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/role\/([^?]+)/)) {
+        const roleName = uri.match(/^keycloak:\/\/role\/([^?]+)/)?.[1];
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.getRole({ realm, roleName });
+        if (!roleName) throw new Error('Role name is required');
+        const result = await keycloakClient.getRole({ realm, roleName });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };      } else if (uri.match(/^keycloak:\/\/client\/([^\/]+)\/roles/)) {
+        const clientUuid = uri.match(/^keycloak:\/\/client\/([^\/]+)\/roles/)?.[1];
+        const realm = searchParams.get('realm') || 'master';
+        if (!clientUuid) throw new Error('Client UUID is required');
+        const result = await keycloakClient.listClientRoles({ realm, clientUuid });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Group resources
-      else if (path === 'groups') {
+
+      // ========== GROUP RESOURCES ==========
+      else if (uri.startsWith('keycloak://groups')) {
         const realm = searchParams.get('realm') || 'master';
-        const max = parseInt(searchParams.get('max') || '100');
-        const search = searchParams.get('search') || undefined;
-        const first = parseInt(searchParams.get('first') || '0');
-        return await keycloakClient.listGroups({ realm, max, search, first });
-      } else if (path.startsWith('group/')) {
-        const groupId = path.split('/')[1];
+        const result = await keycloakClient.listGroups({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/group\/([^?]+)/)) {
+        const groupId = uri.match(/^keycloak:\/\/group\/([^?]+)/)?.[1];
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.getGroup({ realm, groupId });
+        if (!groupId) throw new Error('Group ID is required');
+        const result = await keycloakClient.getGroup({ realm, groupId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Identity provider resources
-      else if (path === 'identity-providers') {
+
+      // ========== IDENTITY PROVIDER RESOURCES ==========
+      else if (uri.startsWith('keycloak://identity-providers')) {
         const realm = searchParams.get('realm') || 'master';
-        const alias = searchParams.get('alias') || undefined;
-        const providerId = searchParams.get('providerId') || undefined;
-        return await keycloakClient.listIdentityProviders({ realm, alias, providerId });
-      } else if (path.startsWith('identity-provider/')) {
-        const alias = path.split('/')[1];
+        const result = await keycloakClient.listIdentityProviders({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^keycloak:\/\/identity-provider\/([^?]+)/)) {
+        const alias = uri.match(/^keycloak:\/\/identity-provider\/([^?]+)/)?.[1];
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.getIdentityProvider({ realm, alias });
+        if (!alias) throw new Error('Identity provider alias is required');
+        const result = await keycloakClient.getIdentityProvider({ realm, alias });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Client scope resources
-      else if (path === 'client-scopes') {
+
+      // ========== CLIENT SCOPE RESOURCES ==========
+      else if (uri.startsWith('keycloak://client-scopes')) {
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.listClientScopes({ realm });
+        const result = await keycloakClient.listClientScopes({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Event resources
-      else if (path === 'events') {
+
+      // ========== EVENT RESOURCES ==========
+      else if (uri.startsWith('keycloak://events')) {
         const realm = searchParams.get('realm') || 'master';
-        const max = parseInt(searchParams.get('max') || '100');
-        const first = parseInt(searchParams.get('first') || '0');
-        const dateFrom = searchParams.get('dateFrom') || undefined;
-        const dateTo = searchParams.get('dateTo') || undefined;
-        const type = searchParams.get('type') || undefined;
-        const userId = searchParams.get('userId') || undefined;
-        return await keycloakClient.getEvents({ realm, max, first, dateFrom, dateTo, type, userId });
-      } else if (path === 'admin-events') {
+        const result = await keycloakClient.getEvents({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.startsWith('keycloak://admin-events')) {
         const realm = searchParams.get('realm') || 'master';
-        const max = parseInt(searchParams.get('max') || '100');
-        const first = parseInt(searchParams.get('first') || '0');
-        const dateFrom = searchParams.get('dateFrom') || undefined;
-        const dateTo = searchParams.get('dateTo') || undefined;
-        const operationType = searchParams.get('operationType') || undefined;
-        const authRealm = searchParams.get('authRealm') || undefined;
-        const authClient = searchParams.get('authClient') || undefined;
-        const authUser = searchParams.get('authUser') || undefined;
-        const authIpAddress = searchParams.get('authIpAddress') || undefined;
-        const resourcePath = searchParams.get('resourcePath') || undefined;
-        return await keycloakClient.getAdminEvents({ 
-          realm, max, first, dateFrom, dateTo, operationType, 
-          authRealm, authClient, authUser, authIpAddress, resourcePath 
-        });
+        const result = await keycloakClient.getAdminEvents({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Authentication flow resources
-      else if (path === 'authentication/flows') {
+
+      // ========== AUTHENTICATION FLOW RESOURCES ==========
+      else if (uri.startsWith('keycloak://authentication/flows')) {
         const realm = searchParams.get('realm') || 'master';
-        return await keycloakClient.listAuthenticationFlows({ realm });
+        const result = await keycloakClient.listAuthenticationFlows({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Organization resources
-      else if (path === 'organizations') {
+
+      // ========== ORGANIZATION RESOURCES ==========
+      else if (uri.startsWith('keycloak://organizations')) {
         const realm = searchParams.get('realm') || 'master';
-        const max = parseInt(searchParams.get('max') || '100');
-        const first = parseInt(searchParams.get('first') || '0');
-        const search = searchParams.get('search') || undefined;
-        return await keycloakClient.listOrganizations({ realm, max, first, search });
-      }    } else if (url.protocol === 'infisical:' && infisicalClient) {
-      const path = url.pathname.slice(1); // Remove leading slash
-      const searchParams = new URLSearchParams(url.search);
-      
-      // Secret resources
-      if (path === 'secrets') {
+        const result = await keycloakClient.listOrganizations({ realm });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }
+    } 
+    
+    else if (uri.startsWith('infisical://')) {
+      if (!infisicalClient) {
+        throw new Error('Infisical client not configured');
+      }
+
+      // ========== SECRET RESOURCES ==========
+      if (uri.startsWith('infisical://secrets')) {
         const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
         const environment = searchParams.get('environment') || 'dev';
         const secretPath = searchParams.get('secretPath') || '/';
-        const viewSecretValue = searchParams.get('viewSecretValue') !== 'false';
-        const expandSecretReferences = searchParams.get('expandSecretReferences') === 'true';
-        const recursive = searchParams.get('recursive') === 'true';
-        const includeImports = searchParams.get('includeImports') === 'true';
-        const metadataFilter = searchParams.get('metadataFilter');
-        const tagSlugs = searchParams.get('tagSlugs');
-        const workspaceSlug = searchParams.get('workspaceSlug');
         
         if (!workspaceId) throw new Error('workspaceId or projectId is required');
-        return await infisicalClient.listSecrets({ 
-          workspaceId, environment, secretPath, viewSecretValue, 
-          expandSecretReferences, recursive, includeImports, 
-          metadataFilter, tagSlugs, workspaceSlug 
+        
+        const result = await infisicalClient.listSecrets({ 
+          workspaceId, 
+          environment, 
+          secretPath 
         });
-      } else if (path.startsWith('secret/')) {
-        const secretName = path.split('/')[1];
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^infisical:\/\/secret\/([^?]+)/)) {
+        const secretName = uri.match(/^infisical:\/\/secret\/([^?]+)/)?.[1];
         const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
         const environment = searchParams.get('environment') || 'dev';
-        const secretPath = searchParams.get('secretPath') || '/';
-        const version = searchParams.get('version');
-        const type = searchParams.get('type') || 'shared';
-        const expandSecretReferences = searchParams.get('expandSecretReferences') === 'true';
-        const workspaceSlug = searchParams.get('workspaceSlug');
+        
+        if (!secretName || !workspaceId) throw new Error('Secret name and workspaceId are required');
+        
+        const result = await infisicalClient.getSecret({ 
+          workspaceId, 
+          environment, 
+          secretName 
+        });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }
+
+      // ========== PROJECT RESOURCES ==========
+      else if (uri === 'infisical://projects') {
+        const result = await infisicalClient.listProjects({});
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^infisical:\/\/project\/([^?]+)/)) {
+        const workspaceId = uri.match(/^infisical:\/\/project\/([^?]+)/)?.[1];
+        if (!workspaceId) throw new Error('Workspace ID is required');
+        const result = await infisicalClient.getProject({ workspaceId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }
+
+      // ========== ENVIRONMENT RESOURCES ==========
+      else if (uri.match(/^infisical:\/\/environments\/([^?]+)/)) {
+        const workspaceId = uri.match(/^infisical:\/\/environments\/([^?]+)/)?.[1];
+        if (!workspaceId) throw new Error('Workspace ID is required');
+        const result = await infisicalClient.listEnvironments({ workspaceId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }
+
+      // ========== FOLDER RESOURCES ==========
+      else if (uri.startsWith('infisical://folders')) {
+        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
+        const environment = searchParams.get('environment') || 'dev';
+        const path = searchParams.get('path') || '/';
         
         if (!workspaceId) throw new Error('workspaceId or projectId is required');
-        return await infisicalClient.getSecret({ 
-          workspaceId, environment, secretName, secretPath, 
-          version, type, expandSecretReferences, workspaceSlug 
-        });
-      }
-      
-      // Project resources
-      else if (path === 'projects') {
-        return await infisicalClient.listProjects({});
-      } else if (path.startsWith('project/')) {
-        const workspaceId = path.split('/')[1];
-        return await infisicalClient.getProject({ workspaceId });
-      }
-      
-      // Environment resources
-      else if (path.startsWith('environments/')) {
-        const workspaceId = path.split('/')[1];
-        return await infisicalClient.listEnvironments({ workspaceId });
-      }
-      
-      // Folder resources
-      else if (path === 'folders') {
-        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
-        const environment = searchParams.get('environment');
-        const folderPath = searchParams.get('path') || searchParams.get('directory');
-        const recursive = searchParams.get('recursive') === 'true';
-        const lastSecretModified = searchParams.get('lastSecretModified');
         
-        if (!workspaceId || !environment) throw new Error('workspaceId/projectId and environment are required');
-        return await infisicalClient.listFolders({ 
-          workspaceId, environment, path: folderPath, 
-          recursive, lastSecretModified 
+        const result = await infisicalClient.listFolders({ 
+          workspaceId, 
+          environment,
+          path
         });
-      } else if (path.startsWith('folder/')) {
-        const folderId = path.split('/')[1];
-        return await infisicalClient.getFolder({ folderId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^infisical:\/\/folder\/([^?]+)/)) {
+        const folderId = uri.match(/^infisical:\/\/folder\/([^?]+)/)?.[1];
+        if (!folderId) throw new Error('Folder ID is required');
+        const result = await infisicalClient.getFolder({ folderId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      }      // ========== SECRET TAG RESOURCES ==========
+      else if (uri.match(/^infisical:\/\/secret-tags\/([^?]+)/)) {
+        const workspaceId = uri.match(/^infisical:\/\/secret-tags\/([^?]+)/)?.[1];
+        if (!workspaceId) throw new Error('Workspace ID is required');
+        const result = await infisicalClient.listSecretTags({ workspaceId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
+      } else if (uri.match(/^infisical:\/\/secret-tag\/([^\/]+)\/([^?]+)/)) {
+        const matches = uri.match(/^infisical:\/\/secret-tag\/([^\/]+)\/([^?]+)/);
+        const workspaceId = matches?.[1];
+        const tagId = matches?.[2];
+        if (!workspaceId || !tagId) throw new Error('Workspace ID and tag ID are required');
+        const result = await infisicalClient.getSecretTag({ workspaceId, tagId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Secret tag resources
-      else if (path.startsWith('secret-tags/')) {
-        const parts = path.split('/');
-        if (parts.length === 2) {
-          // List tags: secret-tags/{workspaceId}
-          const workspaceId = parts[1];
-          return await infisicalClient.listSecretTags({ workspaceId });
-        } else if (parts.length === 3) {
-          // Get specific tag: secret-tags/{workspaceId}/{tagId}
-          const workspaceId = parts[1];
-          const tagId = parts[2];
-          return await infisicalClient.getSecretTag({ workspaceId, tagId });
-        }
+
+      // ========== ORGANIZATION RESOURCES ==========
+      else if (uri.match(/^infisical:\/\/organization\/([^\/]+)\/memberships/)) {
+        const organizationId = uri.match(/^infisical:\/\/organization\/([^\/]+)\/memberships/)?.[1];
+        if (!organizationId) throw new Error('Organization ID is required');
+        const result = await infisicalClient.getOrganizationMemberships({ organizationId });
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
-      
-      // Organization resources
-      else if (path.startsWith('organization/') && path.includes('/memberships')) {
-        const organizationId = path.split('/')[1];
-        return await infisicalClient.getOrganizationMemberships({ organizationId });
-      }
-      
-      // Audit log resources
-      else if (path === 'audit-logs') {
-        const projectId = searchParams.get('projectId');
-        const environment = searchParams.get('environment');
-        const actorType = searchParams.get('actorType');
-        const secretPath = searchParams.get('secretPath');
-        const secretKey = searchParams.get('secretKey');
-        const eventType = searchParams.get('eventType');
-        const userAgentType = searchParams.get('userAgentType');
-        const eventMetadata = searchParams.get('eventMetadata');
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
-        const offset = parseInt(searchParams.get('offset') || '0');
-        const limit = parseInt(searchParams.get('limit') || '20');
-        const actor = searchParams.get('actor');
-        
-        return await infisicalClient.getAuditLogs({ 
-          projectId, environment, actorType, secretPath, secretKey, 
-          eventType, userAgentType, eventMetadata, startDate, endDate, 
-          offset, limit, actor 
-        });
+
+      // ========== AUDIT LOG RESOURCES ==========
+      else if (uri.startsWith('infisical://audit-logs')) {
+        const result = await infisicalClient.getAuditLogs({});
+        return {
+          contents: [{
+            uri,
+            text: JSON.stringify(result, null, 2),
+            mimeType: 'application/json'
+          }]
+        };
       }
     }
     
@@ -596,6 +542,234 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         text: `Error: ${error.message}`,
         mimeType: 'text/plain'
       }]
+    };
+  }
+});
+
+// List tools handler
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return { tools };
+});
+
+// Call tool handler
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  try {
+    // ========== KEYCLOAK TOOLS ==========
+    if (name.startsWith('keycloak_')) {
+      if (!keycloakClient) {
+        throw new Error('Keycloak client not configured');
+      }
+
+      // Realm management
+      if (name === 'keycloak_create_realm') {
+        const result = await keycloakClient.createRealm(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_realm') {
+        const result = await keycloakClient.updateRealm(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_realm') {
+        const result = await keycloakClient.deleteRealm(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // User management
+      else if (name === 'keycloak_create_user') {
+        const result = await keycloakClient.createUser(args);
+        
+        // Auto-store user credentials in Infisical if integration is enabled
+        if (integration?.isEnabled() && args && args.password) {
+          await integration.storeUserCredentials(args, (args.realm as string) || 'master', args.password as string);
+        }
+        
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_user') {
+        const result = await keycloakClient.updateUser(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_user') {
+        const result = await keycloakClient.deleteUser(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Client management
+      else if (name === 'keycloak_create_client') {
+        const result = await keycloakClient.createClient(args);
+        
+        // Auto-store client secret in Infisical if integration is enabled
+        if (integration?.isEnabled() && args && result.clientData) {
+          await integration.storeClientSecret(result.clientData, (args.realm as string) || 'master');
+        }
+        
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_client') {
+        const result = await keycloakClient.updateClient(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_client') {
+        const result = await keycloakClient.deleteClient(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Role management
+      else if (name === 'keycloak_create_role') {
+        const result = await keycloakClient.createRole(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_role') {
+        const result = await keycloakClient.updateRole(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_role') {
+        const result = await keycloakClient.deleteRole(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_create_client_role') {
+        const result = await keycloakClient.createClientRole(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }      // Role assignment
+      else if (name === 'keycloak_assign_realm_role') {
+        const result = await keycloakClient.assignRealmRoleToUser(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_assign_client_role') {
+        const result = await keycloakClient.assignClientRoleToUser(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_assign_role') {
+        // Backward compatibility - determine if it's a realm or client role
+        const result = await keycloakClient.assignRole(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Group management
+      else if (name === 'keycloak_create_group') {
+        const result = await keycloakClient.createGroup(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_group') {
+        const result = await keycloakClient.updateGroup(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_group') {
+        const result = await keycloakClient.deleteGroup(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Identity provider management
+      else if (name === 'keycloak_create_identity_provider') {
+        const result = await keycloakClient.createIdentityProvider(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_update_identity_provider') {
+        const result = await keycloakClient.updateIdentityProvider(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'keycloak_delete_identity_provider') {
+        const result = await keycloakClient.deleteIdentityProvider(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Client scope management
+      else if (name === 'keycloak_create_client_scope') {
+        const result = await keycloakClient.createClientScope(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Authentication flow management
+      else if (name === 'keycloak_create_authentication_flow') {
+        const result = await keycloakClient.createAuthenticationFlow(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Organization management
+      else if (name === 'keycloak_create_organization') {
+        const result = await keycloakClient.createOrganization(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      else {
+        throw new Error(`Unknown Keycloak tool: ${name}`);
+      }
+    }
+
+    // ========== INFISICAL TOOLS ==========
+    else if (name.startsWith('infisical_')) {
+      if (!infisicalClient) {
+        throw new Error('Infisical client not configured');
+      }
+
+      // Secret management
+      if (name === 'infisical_create_secret') {
+        const result = await infisicalClient.createSecret(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_update_secret') {
+        const result = await infisicalClient.updateSecret(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_secret') {
+        const result = await infisicalClient.deleteSecret(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Project management
+      else if (name === 'infisical_create_project') {
+        const result = await infisicalClient.createProject(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_update_project') {
+        const result = await infisicalClient.updateProject(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_project') {
+        const result = await infisicalClient.deleteProject(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Environment management
+      else if (name === 'infisical_create_environment') {
+        const result = await infisicalClient.createEnvironment(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_update_environment') {
+        const result = await infisicalClient.updateEnvironment(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_environment') {
+        const result = await infisicalClient.deleteEnvironment(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Folder management
+      else if (name === 'infisical_create_folder') {
+        const result = await infisicalClient.createFolder(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_update_folder') {
+        const result = await infisicalClient.updateFolder(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_folder') {
+        const result = await infisicalClient.deleteFolder(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Secret tag management
+      else if (name === 'infisical_create_secret_tag') {
+        const result = await infisicalClient.createSecretTag(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_update_secret_tag') {
+        const result = await infisicalClient.updateSecretTag(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_secret_tag') {
+        const result = await infisicalClient.deleteSecretTag(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      // Organization management
+      else if (name === 'infisical_update_organization_membership') {
+        const result = await infisicalClient.updateOrganizationMembership(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_delete_organization_membership') {
+        const result = await infisicalClient.deleteOrganizationMembership(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+
+      else {
+        throw new Error(`Unknown Infisical tool: ${name}`);
+      }
+    }
+
+    else {
+      throw new Error(`Unknown tool: ${name}`);
+    }
+  } catch (error: any) {
+    return {
+      content: [{ type: "text", text: `Error: ${error.message}` }],
+      isError: true
     };
   }
 });
