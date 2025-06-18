@@ -2,10 +2,15 @@ import axios, { AxiosInstance } from 'axios';
 
 export interface InfisicalConfig {
   url: string;
-  clientId: string;
-  clientSecret: string;
-  // Legacy support (deprecated)
+  // Token Auth (preferred)
   token?: string;
+  // Universal Auth (fallback)
+  clientId?: string;
+  clientSecret?: string;
+  // Static configuration defaults (from environment)
+  orgId?: string;
+  projectId?: string;
+  environment?: string;
 }
 
 interface AccessTokenData {
@@ -31,15 +36,21 @@ export class InfisicalClient {
       },
     });
 
-    // Legacy token support (deprecated)
-    if (config.token && !config.clientId && !config.clientSecret) {
-      console.warn('⚠️  WARNING: API tokens are deprecated. Please migrate to Universal Auth with Client ID and Client Secret.');
+    // Token Auth (preferred) - use token directly
+    if (config.token) {
       this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${config.token}`;
+    }
+    // Universal Auth (fallback) - requires authentication flow
+    else if (config.clientId && config.clientSecret) {
+      // Will authenticate via Universal Auth when needed
+    }
+    else {
+      throw new Error('Either token (preferred) or clientId + clientSecret (fallback) must be provided');
     }
   }
 
   /**
-   * Authenticate with Infisical using Universal Auth
+   * Authenticate with Infisical using Universal Auth (only if not using token auth)
    */
   private async authenticate(): Promise<void> {
     if (this.isAuthenticating) {
@@ -53,14 +64,15 @@ export class InfisicalClient {
     this.isAuthenticating = true;
 
     try {
-      // Check if we're using legacy token auth
-      if (this.config.token && !this.config.clientId && !this.config.clientSecret) {
+      // Check if we're using token auth (preferred)
+      if (this.config.token) {
         this.isAuthenticating = false;
-        return; // Already configured with legacy token
+        return; // Already configured with token auth
       }
 
+      // Use Universal Auth as fallback
       if (!this.config.clientId || !this.config.clientSecret) {
-        throw new Error('Client ID and Client Secret are required for Universal Auth');
+        throw new Error('Client ID and Client Secret are required for Universal Auth when token is not provided');
       }
 
       const response = await axios.post(
@@ -129,12 +141,12 @@ export class InfisicalClient {
    * Ensure we have a valid access token
    */
   private async ensureAuthenticated(): Promise<void> {
-    // If using legacy token auth, skip Universal Auth
-    if (this.config.token && !this.config.clientId && !this.config.clientSecret) {
+    // If using token auth, no need to authenticate or renew
+    if (this.config.token) {
       return;
     }
 
-    // If we don't have a token, authenticate
+    // If we don't have a token, authenticate using Universal Auth
     if (!this.accessTokenData) {
       await this.authenticate();
       return;
@@ -151,11 +163,10 @@ export class InfisicalClient {
   // ========== SECRET MANAGEMENT ==========
     async listSecrets(args: any): Promise<any> {
     await this.ensureAuthenticated();
-    await this.ensureAuthenticated();
     try {
       const params: any = {
-        workspaceId: args.workspaceId || args.projectId,
-        environment: args.environment || 'dev',
+        workspaceId: args.workspaceId || args.projectId || this.config.projectId,
+        environment: args.environment || this.config.environment || 'dev',
         secretPath: args.secretPath || '/',
         viewSecretValue: args.viewSecretValue !== undefined ? args.viewSecretValue : true,
         expandSecretReferences: args.expandSecretReferences || false,
@@ -179,11 +190,10 @@ export class InfisicalClient {
   }
   async getSecret(args: any): Promise<any> {
     await this.ensureAuthenticated();
-    await this.ensureAuthenticated();
     try {
       const params: any = {
-        workspaceId: args.workspaceId || args.projectId,
-        environment: args.environment || 'dev',
+        workspaceId: args.workspaceId || args.projectId || this.config.projectId,
+        environment: args.environment || this.config.environment || 'dev',
         secretPath: args.secretPath || '/',
         version: args.version,
         type: args.type || 'shared',
@@ -287,7 +297,15 @@ export class InfisicalClient {
   async listProjects(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get('/v2/workspace');
+      // Use the correct API endpoint with organization ID
+      const orgId = this.config.orgId;
+      if (!orgId) {
+        return {
+          content: [{ type: 'text', text: `Error: Organization ID is required. Please set INFISICAL_ORG_ID in your environment.` }],
+        };
+      }
+      
+      const response = await this.axiosInstance.get(`/v2/organizations/${orgId}/workspaces`);
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -446,8 +464,8 @@ export class InfisicalClient {
     await this.ensureAuthenticated();
     try {
       const params: any = {
-        workspaceId: args.workspaceId || args.projectId,
-        environment: args.environment,
+        workspaceId: args.workspaceId || args.projectId || this.config.projectId,
+        environment: args.environment || this.config.environment || 'dev',
         recursive: args.recursive || false,
       };
 

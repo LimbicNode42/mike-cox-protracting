@@ -54,29 +54,33 @@ function initializeClients() {
       password: keycloakPassword,
       realm: keycloakRealm,
     });
-  }
-
-  const infisicalUrl = process.env.INFISICAL_URL;
+  }  const infisicalUrl = process.env.INFISICAL_URL;
+  const infisicalToken = process.env.INFISICAL_TOKEN;
   const infisicalClientId = process.env.INFISICAL_CLIENT_ID;
   const infisicalClientSecret = process.env.INFISICAL_CLIENT_SECRET;
-  const infisicalToken = process.env.INFISICAL_TOKEN; // Legacy support
 
-  // Prioritize Universal Auth (Client ID + Secret) over legacy token
-  if (infisicalUrl && infisicalClientId && infisicalClientSecret) {
+  // Prioritize token auth (preferred) over Universal Auth (fallback)
+  if (infisicalUrl && infisicalToken) {
+    infisicalClient = new InfisicalClient({
+      url: infisicalUrl,
+      token: infisicalToken,
+      // Static environment configuration from .env
+      orgId: process.env.INFISICAL_ORG_ID,
+      projectId: process.env.INFISICAL_PROJECT_ID,
+      environment: process.env.INFISICAL_ENVIRONMENT_SLUG,
+    });
+    console.error('Infisical client initialized with Token Auth');
+  } else if (infisicalUrl && infisicalClientId && infisicalClientSecret) {
     infisicalClient = new InfisicalClient({
       url: infisicalUrl,
       clientId: infisicalClientId,
       clientSecret: infisicalClientSecret,
+      // Static environment configuration from .env
+      orgId: process.env.INFISICAL_ORG_ID,
+      projectId: process.env.INFISICAL_PROJECT_ID,
+      environment: process.env.INFISICAL_ENVIRONMENT_SLUG,
     });
-    console.log('Infisical client initialized with Universal Auth');
-  } else if (infisicalUrl && infisicalToken) {
-    infisicalClient = new InfisicalClient({
-      url: infisicalUrl,
-      clientId: '', // Not used for legacy auth
-      clientSecret: '', // Not used for legacy auth
-      token: infisicalToken,
-    });
-    console.warn('⚠️  Infisical client initialized with deprecated API token. Please migrate to Universal Auth.');
+    console.error('Infisical client initialized with Universal Auth');
   }
 
   // Initialize integration if both clients are available
@@ -86,11 +90,10 @@ function initializeClients() {
     };
 
     integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
-    
-    if (integrationConfig.enabled) {
-      console.log('Keycloak-Infisical integration enabled with auto-discovery');
+      if (integrationConfig.enabled) {
+      console.error('Keycloak-Infisical integration enabled with auto-discovery');
     } else {
-      console.log('Keycloak-Infisical integration disabled');
+      console.error('Keycloak-Infisical integration disabled');
     }
   }
 }
@@ -369,15 +372,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     else if (uri.startsWith('infisical://')) {
       if (!infisicalClient) {
         throw new Error('Infisical client not configured');
-      }
-
-      // ========== SECRET RESOURCES ==========
+      }      // ========== SECRET RESOURCES ==========
       if (uri.startsWith('infisical://secrets')) {
         const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
-        const environment = searchParams.get('environment') || 'dev';
+        const environment = searchParams.get('environment');
         const secretPath = searchParams.get('secretPath') || '/';
-        
-        if (!workspaceId) throw new Error('workspaceId or projectId is required');
         
         const result = await infisicalClient.listSecrets({ 
           workspaceId, 
@@ -387,27 +386,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         return {
           contents: [{
             uri,
-            text: JSON.stringify(result, null, 2),
-            mimeType: 'application/json'
-          }]
-        };
-      } else if (uri.match(/^infisical:\/\/secret\/([^?]+)/)) {
-        const secretName = uri.match(/^infisical:\/\/secret\/([^?]+)/)?.[1];
-        const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
-        const environment = searchParams.get('environment') || 'dev';
-        
-        if (!secretName || !workspaceId) throw new Error('Secret name and workspaceId are required');
-        
-        const result = await infisicalClient.getSecret({ 
-          workspaceId, 
-          environment, 
-          secretName 
-        });
-        return {
-          contents: [{
-            uri,
-            text: JSON.stringify(result, null, 2),
-            mimeType: 'application/json'
+            text: JSON.stringify(result, null, 2),            mimeType: 'application/json'
           }]
         };
       }
@@ -418,11 +397,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         return {
           contents: [{
             uri,
-            text: JSON.stringify(result, null, 2),
+            text: result.content[0].text,
             mimeType: 'application/json'
           }]
         };
-      } else if (uri.match(/^infisical:\/\/project\/([^?]+)/)) {
+      }else if (uri.match(/^infisical:\/\/project\/([^?]+)/)) {
         const workspaceId = uri.match(/^infisical:\/\/project\/([^?]+)/)?.[1];
         if (!workspaceId) throw new Error('Workspace ID is required');
         const result = await infisicalClient.getProject({ workspaceId });
@@ -447,15 +426,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             mimeType: 'application/json'
           }]
         };
-      }
-
-      // ========== FOLDER RESOURCES ==========
+      }      // ========== FOLDER RESOURCES ==========
       else if (uri.startsWith('infisical://folders')) {
         const workspaceId = searchParams.get('workspaceId') || searchParams.get('projectId');
-        const environment = searchParams.get('environment') || 'dev';
+        const environment = searchParams.get('environment');
         const path = searchParams.get('path') || '/';
-        
-        if (!workspaceId) throw new Error('workspaceId or projectId is required');
         
         const result = await infisicalClient.listFolders({ 
           workspaceId, 
@@ -465,7 +440,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         return {
           contents: [{
             uri,
-            text: JSON.stringify(result, null, 2),
+            text: result.content[0].text,
             mimeType: 'application/json'
           }]
         };
@@ -476,11 +451,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         return {
           contents: [{
             uri,
-            text: JSON.stringify(result, null, 2),
+            text: result.content[0].text,
             mimeType: 'application/json'
           }]
         };
-      }      // ========== SECRET TAG RESOURCES ==========
+      }// ========== SECRET TAG RESOURCES ==========
       else if (uri.match(/^infisical:\/\/secret-tags\/([^?]+)/)) {
         const workspaceId = uri.match(/^infisical:\/\/secret-tags\/([^?]+)/)?.[1];
         if (!workspaceId) throw new Error('Workspace ID is required');
@@ -687,10 +662,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     else if (name.startsWith('infisical_')) {
       if (!infisicalClient) {
         throw new Error('Infisical client not configured');
-      }
-
-      // Secret management
-      if (name === 'infisical_create_secret') {
+      }      // Secret management
+      if (name === 'infisical_get_secret') {
+        const result = await infisicalClient.getSecret(args);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } else if (name === 'infisical_create_secret') {
         const result = await infisicalClient.createSecret(args);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } else if (name === 'infisical_update_secret') {

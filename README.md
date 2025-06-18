@@ -56,6 +56,12 @@ Infisical's new Universal Auth provides secure machine-to-machine authentication
 export INFISICAL_URL="https://your-infisical-instance.com"
 export INFISICAL_CLIENT_ID="your-client-id"
 export INFISICAL_CLIENT_SECRET="your-client-secret"
+
+# Optional: Static Configuration Defaults
+# These provide default values for resources and tools when parameters aren't specified
+export INFISICAL_ORG_ID="your-organization-id"
+export INFISICAL_PROJECT_ID="your-default-project-id"
+export INFISICAL_ENVIRONMENT_SLUG="prod"  # or dev, staging, etc.
 ```
 
 **Setting up Universal Auth:**
@@ -65,12 +71,23 @@ export INFISICAL_CLIENT_SECRET="your-client-secret"
 4. Create a Client Secret for the identity
 5. Use the Client ID and Client Secret in your environment variables
 
+**Static Configuration Benefits:**
+- ✅ Simplified resource access - no need to specify project/environment repeatedly
+- ✅ Default project and environment for all operations
+- ✅ Still allows parameter overrides when needed
+- ✅ Better UX for tools and resources
+
 #### Option 2: API Token (Legacy - Deprecated)
 For backward compatibility only:
 
 ```bash
 export INFISICAL_URL="https://your-infisical-instance.com"
 export INFISICAL_TOKEN="your-api-token"  # Only if not using Universal Auth
+
+# Optional: Static Configuration Defaults (works with both auth methods)
+export INFISICAL_ORG_ID="your-organization-id"
+export INFISICAL_PROJECT_ID="your-default-project-id"
+export INFISICAL_ENVIRONMENT_SLUG="prod"
 ```
 
 ⚠️ **API tokens are deprecated by Infisical**. Please migrate to Universal Auth for better security and functionality.
@@ -278,6 +295,27 @@ This MCP server follows the proper **Resources vs Tools** distinction as per the
 
 - **Resources** are like GET endpoints - they provide read-only access to data without side effects
 - **Tools** are like POST/PUT/DELETE endpoints - they perform actions and have side effects
+
+### Resource vs Tool Guidelines
+
+**Resources** (for browsing and discovery):
+- `infisical://secrets` - List all secrets in a project/environment
+- `infisical://projects` - List all available projects  
+- `infisical://folders` - List folders in a project/environment
+- `keycloak://users` - List users in a realm
+- `keycloak://realms` - List all realms
+
+**Tools** (for specific actions with parameters):
+- `infisical_get_secret` - Get a specific secret by name (dynamic parameter)
+- `infisical_create_secret` - Create a new secret
+- `keycloak_create_user` - Create a new user
+- `keycloak_update_realm` - Update realm settings
+
+**Key Benefits:**
+- ✅ **Static Resources**: Easy browsing and discovery without parameters
+- ✅ **Dynamic Tools**: Precise actions with user-specified parameters  
+- ✅ **Default Values**: Resources and tools use `.env` defaults when available
+- ✅ **Parameter Flexibility**: Can override defaults when needed
 
 This separation allows LLMs to:
 - Efficiently browse and discover data through resources

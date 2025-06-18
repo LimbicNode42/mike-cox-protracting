@@ -1,6 +1,26 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export const infisicalTools: Tool[] = [
+  // ========== SECRET MANAGEMENT (READ) ==========
+  {
+    name: 'infisical_get_secret',
+    description: 'Get a specific secret from Infisical by name',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        secretName: { type: 'string', description: 'Name of the secret to retrieve' },
+        workspaceId: { type: 'string', description: 'Infisical workspace/project ID (optional if configured in .env)' },
+        projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
+        environment: { type: 'string', description: 'Environment name (optional if configured in .env, defaults to dev)' },
+        secretPath: { type: 'string', description: 'Path of the secret', default: '/' },
+        version: { type: 'number', description: 'Version of the secret to retrieve' },
+        type: { type: 'string', description: 'Type of secret (shared or personal)', default: 'shared' },
+        expandSecretReferences: { type: 'boolean', description: 'Whether to expand secret references', default: false }
+      },
+      required: ['secretName']
+    }
+  },
+
   // ========== SECRET MANAGEMENT (WRITE) ==========
   {
     name: 'infisical_create_secret',

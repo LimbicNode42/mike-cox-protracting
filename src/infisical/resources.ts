@@ -1,25 +1,17 @@
 import { Resource } from '@modelcontextprotocol/sdk/types.js';
 
-export const infisicalResources: Resource[] = [
-  // ========== SECRET RESOURCES ==========
+export const infisicalResources: Resource[] = [  // ========== SECRET RESOURCES ==========
   {
     uri: "infisical://secrets",
     name: "Infisical Secrets",
-    description: "List secrets in an Infisical project environment (specify workspaceId/projectId and environment as query parameters)",
+    description: "List secrets in an Infisical project environment. Uses default project and environment from .env, or specify workspaceId/projectId and environment as query parameters.",
     mimeType: "application/json"
   },
-  {
-    uri: "infisical://secret/{secretName}",
-    name: "Infisical Secret",
-    description: "Get a specific secret from Infisical (specify workspaceId/projectId and environment as query parameters)",
-    mimeType: "application/json"
-  },
-
   // ========== PROJECT RESOURCES ==========
   {
     uri: "infisical://projects",
     name: "Infisical Projects",
-    description: "List all Infisical projects/workspaces",
+    description: "List all Infisical projects/workspaces in your organization (uses INFISICAL_ORG_ID from .env)",
     mimeType: "application/json"
   },
   {
@@ -42,12 +34,11 @@ export const infisicalResources: Resource[] = [
     description: "List environments in an Infisical project (legacy alias for workspaceId)",
     mimeType: "application/json"
   },
-
   // ========== FOLDER RESOURCES ==========
   {
     uri: "infisical://folders",
     name: "Infisical Folders",
-    description: "List folders in an Infisical project environment (specify workspaceId/projectId and environment as query parameters)",
+    description: "List folders in an Infisical project environment. Uses default project and environment from .env, or specify workspaceId/projectId and environment as query parameters.",
     mimeType: "application/json"
   },
   {
