@@ -4,11 +4,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# TypeScript build
-src/
-tsconfig.json
-*.ts
-
 # Development files
 .env
 .env.local
