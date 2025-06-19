@@ -6,6 +6,9 @@ dotenv.config();
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express, { Request, Response } from 'express';
+import cors from 'cors';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -751,14 +754,64 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  const mode = args.includes('--mode') ? args[args.indexOf('--mode') + 1] : 'stdio';
+  const host = args.includes('--host') ? args[args.indexOf('--host') + 1] : '0.0.0.0';
+  const port = args.includes('--port') ? parseInt(args[args.indexOf('--port') + 1] || '8000') : 8000;
+
   initializeClients();
 
+  if (mode === 'http') {
+    // HTTP mode for production deployments
+    await runHttpServer(host, port);
+  } else {
+    // STDIO mode for MCP Inspector and development
+    await runStdioServer();
+  }
+}
+
+async function runStdioServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   
-  console.error('MCP Server for Keycloak and Infisical started');
+  console.error('MCP Server for Keycloak and Infisical started in STDIO mode');
   console.error(`Keycloak client: ${keycloakClient ? 'configured' : 'not configured'}`);
   console.error(`Infisical client: ${infisicalClient ? 'configured' : 'not configured'}`);
+}
+
+async function runHttpServer(host: string, port: number) {
+  // For HTTP mode, we use Express with SSE transport
+  const app = express();
+  
+  // Enable CORS for all routes
+  app.use(cors());
+  
+  // Parse JSON bodies
+  app.use(express.json());
+  
+  // Health check endpoint for Docker
+  app.get('/health', (req: Request, res: Response) => {
+    res.json({ 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      keycloak: keycloakClient ? 'configured' : 'not configured',
+      infisical: infisicalClient ? 'configured' : 'not configured'
+    });
+  });
+  // MCP Server endpoint using SSE transport
+  app.post('/mcp', async (req: Request, res: Response) => {
+    const transport = new SSEServerTransport('/mcp', res);
+    await server.connect(transport);
+  });
+
+  app.listen(port, host, () => {
+    console.error(`MCP Server for Keycloak and Infisical started in HTTP mode on ${host}:${port}`);
+    console.error(`Health check available at: http://${host}:${port}/health`);
+    console.error(`MCP endpoint available at: http://${host}:${port}/mcp`);
+    console.error(`Keycloak client: ${keycloakClient ? 'configured' : 'not configured'}`);
+    console.error(`Infisical client: ${infisicalClient ? 'configured' : 'not configured'}`);
+  });
 }
 
 main().catch((error) => {

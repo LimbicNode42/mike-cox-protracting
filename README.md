@@ -578,3 +578,63 @@ npm run format     # Format code
 ## License
 
 MIT
+
+## 🐳 Docker Deployment
+
+### Using Docker Compose (Recommended for Home Lab)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/LimbicNode42/mike-cox-protracting.git
+cd mike-cox-protracting
+```
+
+2. Create environment file:
+```bash
+cp .env.docker .env
+# Edit .env with your configuration
+```
+
+3. Build and run:
+```bash
+docker-compose up -d
+```
+
+4. Check health:
+```bash
+curl http://localhost:8000/health
+```
+
+### Using Pre-built Image
+
+```bash
+docker run -d \
+  --name mike-cox-protracting \
+  -p 8000:8000 \
+  -e KEYCLOAK_URL="https://your-keycloak.com" \
+  -e KEYCLOAK_USERNAME="your-username" \
+  -e KEYCLOAK_PASSWORD="your-password" \
+  -e INFISICAL_TOKEN="your-token" \
+  -e INFISICAL_ORG_ID="your-org-id" \
+  -e INFISICAL_PROJECT_ID="your-project-id" \
+  --restart unless-stopped \
+  ghcr.io/limbicnode42/mike-cox-protracting:latest
+```
+
+### Configuration for Docker
+
+The Docker image runs in HTTP mode by default on port 8000. Configure the following environment variables:
+
+- **Server**: `HOST=0.0.0.0`, `PORT=8000`
+- **Keycloak**: `KEYCLOAK_URL`, `KEYCLOAK_USERNAME`, `KEYCLOAK_PASSWORD`
+- **Infisical**: `INFISICAL_TOKEN`, `INFISICAL_ORG_ID`, `INFISICAL_PROJECT_ID`, `INFISICAL_ENVIRONMENT_SLUG`
+
+The MCP endpoint will be available at: `http://localhost:8000/mcp`
+
+### Traefik Integration
+
+The docker-compose.yml includes Traefik labels for reverse proxy setup. Update the host rule in the compose file:
+
+```yaml
+- "traefik.http.routers.mike-cox-protracting.rule=Host(`mcp-keycloak-infisical.yourdomain.com`)"
+```
