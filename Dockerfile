@@ -37,6 +37,27 @@ EXPOSE 8000
 # Environment variables for server configuration
 ENV HOST=0.0.0.0
 ENV PORT=8000
+ENV NODE_ENV=production
+ENV LOG_LEVEL=info
+
+# Keycloak Configuration
+ENV KEYCLOAK_URL=""
+ENV KEYCLOAK_USERNAME=""
+ENV KEYCLOAK_PASSWORD=""
+ENV KEYCLOAK_REALM=master
+ENV KEYCLOAK_CLIENT_ID=admin-cli
+
+# Infisical Configuration
+ENV INFISICAL_URL=""
+ENV INFISICAL_CLIENT_ID=""
+ENV INFISICAL_CLIENT_SECRET=""
+ENV INFISICAL_TOKEN=""
+ENV INFISICAL_ORG_ID=""
+ENV INFISICAL_PROJECT_ID=""
+ENV INFISICAL_ENVIRONMENT_SLUG=""
+
+# Keycloak-Infisical Integration Configuration
+ENV KEYCLOAK_INFISICAL_INTEGRATION_ENABLED=false
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

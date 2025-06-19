@@ -5,6 +5,7 @@ MCP Server for Keycloak and Infisical integration, providing identity and access
 ## Features
 
 ### Keycloak Integration
+
 - **Multi-realm/Multi-client Support**: No need to specify realm or client ID for every operation
 - **Realm Management**: Create, read, update, delete realms
 - **User Management**: Complete user lifecycle management
@@ -18,6 +19,7 @@ MCP Server for Keycloak and Infisical integration, providing identity and access
 - **Organization Management**: Enterprise organization features
 
 ### Infisical Integration
+
 - **Comprehensive Secret Management**: Full CRUD operations for secrets with folder organization
 - **Project Lifecycle Management**: Create, read, update, delete projects with advanced configuration
 - **Environment Management**: Multi-environment support with dynamic switching
@@ -40,6 +42,7 @@ npm run build
 Set the following environment variables:
 
 ### Keycloak Configuration
+
 ```bash
 export KEYCLOAK_URL="https://your-keycloak-instance.com"
 export KEYCLOAK_USERNAME="admin"
@@ -50,6 +53,7 @@ export KEYCLOAK_REALM="master"  # optional, defaults to 'master'
 ### Infisical Configuration
 
 #### Option 1: Universal Auth (Recommended - New Method)
+
 Infisical's new Universal Auth provides secure machine-to-machine authentication:
 
 ```bash
@@ -65,6 +69,7 @@ export INFISICAL_ENVIRONMENT_SLUG="prod"  # or dev, staging, etc.
 ```
 
 **Setting up Universal Auth:**
+
 1. Go to your Infisical Organization Settings > Access Control > Identities
 2. Create a new Machine Identity with appropriate role
 3. Configure Universal Auth for the identity (enabled by default)
@@ -72,12 +77,14 @@ export INFISICAL_ENVIRONMENT_SLUG="prod"  # or dev, staging, etc.
 5. Use the Client ID and Client Secret in your environment variables
 
 **Static Configuration Benefits:**
+
 - ✅ Simplified resource access - no need to specify project/environment repeatedly
 - ✅ Default project and environment for all operations
 - ✅ Still allows parameter overrides when needed
 - ✅ Better UX for tools and resources
 
 #### Option 2: API Token (Legacy - Deprecated)
+
 For backward compatibility only:
 
 ```bash
@@ -97,6 +104,7 @@ export INFISICAL_ENVIRONMENT_SLUG="prod"
 If you're currently using the deprecated API token method, here's how to migrate:
 
 ### Step 1: Create a Machine Identity in Infisical
+
 1. Navigate to your Infisical dashboard
 2. Go to **Organization Settings** > **Access Control** > **Identities**
 3. Click **"Create Identity"**
@@ -104,6 +112,7 @@ If you're currently using the deprecated API token method, here's how to migrate
 5. Save the identity
 
 ### Step 2: Configure Universal Auth
+
 1. On the identity page, Universal Auth is enabled by default
 2. Optionally configure **Access Token TTL** and **Max TTL** (defaults are usually fine)
 3. Configure **Client Secret Trusted IPs** if you need IP restrictions
@@ -111,6 +120,7 @@ If you're currently using the deprecated API token method, here's how to migrate
 5. **Important**: Copy the Client Secret immediately (it won't be shown again)
 
 ### Step 3: Add Identity to Projects
+
 1. Go to each project where you need access
 2. Navigate to **Project Settings** > **Access Control** > **Machine Identities**
 3. Click **"Add Identity"**
@@ -118,7 +128,9 @@ If you're currently using the deprecated API token method, here's how to migrate
 5. Save the configuration
 
 ### Step 4: Update Environment Variables
+
 Replace your old configuration:
+
 ```bash
 # OLD (remove these)
 INFISICAL_TOKEN=your-api-token
@@ -129,12 +141,14 @@ INFISICAL_CLIENT_SECRET=your-client-secret-from-step-2
 ```
 
 ### Step 5: Test and Deploy
+
 1. Test the connection in a development environment first
 2. Verify all operations work correctly
 3. Deploy to production
 4. Remove the old API token from Infisical dashboard
 
 **Benefits of Migration:**
+
 - ✅ Future-proof authentication method
 - ✅ Better security with automatic token rotation
 - ✅ Configurable token TTL and access controls
@@ -142,13 +156,16 @@ INFISICAL_CLIENT_SECRET=your-client-secret-from-step-2
 - ✅ Audit trail for authentication events
 
 ### Keycloak-Infisical Integration Configuration
+
 Enable automatic storage of Keycloak secrets in Infisical with simplified configuration:
+
 ```bash
 # Simply enable the integration - project and folder are auto-managed
 export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
 ```
 
 **Auto-Discovery Features:**
+
 - ✅ Automatically finds or creates "Keycloak Secrets" project in Infisical
 - ✅ Automatically creates `/keycloak` folder for secret organization
 - ✅ No manual project or folder configuration required
@@ -159,6 +176,7 @@ export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
 ### Keycloak Examples
 
 #### Creating a User with Role Assignment
+
 ```bash
 # First create the user
 keycloak_create_user realm=mycompany username=john.doe email=john@company.com firstName=John lastName=Doe
@@ -171,6 +189,7 @@ keycloak_assign_client_role realm=mycompany userId=user-uuid clientId=my-app rol
 ```
 
 #### Setting up a Client with Custom Scopes
+
 ```bash
 # Create a client
 keycloak_create_client realm=mycompany clientId=web-app name="Web Application" protocol=openid-connect
@@ -182,6 +201,7 @@ keycloak_create_client_scope realm=mycompany name=custom-scope description="Cust
 ### Infisical Examples
 
 #### Complete Secret Management Workflow
+
 ```bash
 # Create a project
 infisical_create_project name="Production App" organizationId=org-123 description="Production environment secrets"
@@ -209,6 +229,7 @@ infisical_update_secret projectId=proj-456 environment=prod secretName=DB_PASSWO
 ```
 
 #### Advanced Secret Organization
+
 ```bash
 # Create nested folder structure
 infisical_create_folder projectId=proj-456 environment=prod name="services" path="/services"
@@ -223,6 +244,7 @@ infisical_create_secret projectId=proj-456 environment=prod secretName=AUTH_SECR
 ```
 
 #### Organization Management
+
 ```bash
 # Update user role in organization
 infisical_update_organization_membership organizationId=org-123 membershipId=member-456 role=admin
@@ -234,16 +256,19 @@ infisical_delete_organization_membership organizationId=org-123 membershipId=mem
 ## Usage
 
 ### Direct Usage
+
 ```bash
 npm start
 ```
 
 ### With VS Code MCP
+
 Add to your `.vscode/mcp.json`:
 
 ```json
 {
-  "servers": {    "keycloak-infisical": {
+  "servers": {
+    "keycloak-infisical": {
       "command": "node",
       "args": ["path/to/mike-cox-protracting/dist/index.js"],
       "env": {
@@ -263,18 +288,21 @@ Add to your `.vscode/mcp.json`:
 ## Advanced Features
 
 ### Dynamic Context Support
+
 Both Keycloak and Infisical integrations support dynamic context switching:
 
 - **Keycloak**: Automatically handles multi-realm and multi-client operations without requiring explicit realm/client specification for every operation
 - **Infisical**: Supports dynamic project, workspace, and environment switching with intelligent parameter inference
 
 ### Comprehensive API Coverage
+
 This MCP server provides extensive coverage of both platforms:
 
 - **Keycloak**: Full Admin REST API coverage including realms, users, clients, roles, groups, identity providers, client scopes, events, authentication flows, and organizations
 - **Infisical**: Complete API coverage including secrets, projects, environments, folders, secret tags, organization management, and audit logging
 
 ### Advanced Query Capabilities
+
 Both integrations support sophisticated filtering and querying:
 
 - **Pagination**: Configurable page size and offset for large datasets
@@ -283,7 +311,9 @@ Both integrations support sophisticated filtering and querying:
 - **Sorting**: Customizable sorting options for optimal data presentation
 
 ### Error Handling and Validation
+
 Robust error handling with:
+
 - Comprehensive input validation
 - Detailed error messages with context
 - Graceful handling of authentication and authorization failures
@@ -299,30 +329,35 @@ This MCP server follows the proper **Resources vs Tools** distinction as per the
 ### Resource vs Tool Guidelines
 
 **Resources** (for browsing and discovery):
+
 - `infisical://secrets` - List all secrets in a project/environment
-- `infisical://projects` - List all available projects  
+- `infisical://projects` - List all available projects
 - `infisical://folders` - List folders in a project/environment
 - `keycloak://users` - List users in a realm
 - `keycloak://realms` - List all realms
 
 **Tools** (for specific actions with parameters):
+
 - `infisical_get_secret` - Get a specific secret by name (dynamic parameter)
 - `infisical_create_secret` - Create a new secret
 - `keycloak_create_user` - Create a new user
 - `keycloak_update_realm` - Update realm settings
 
 **Key Benefits:**
+
 - ✅ **Static Resources**: Easy browsing and discovery without parameters
-- ✅ **Dynamic Tools**: Precise actions with user-specified parameters  
+- ✅ **Dynamic Tools**: Precise actions with user-specified parameters
 - ✅ **Default Values**: Resources and tools use `.env` defaults when available
 - ✅ **Parameter Flexibility**: Can override defaults when needed
 
 This separation allows LLMs to:
+
 - Efficiently browse and discover data through resources
 - Take actions when needed through tools
 - Understand the difference between reading and writing operations
 
 The architecture supports:
+
 - **Modular Design**: Separate modules for Keycloak and Infisical with consistent patterns
 - **Type Safety**: Full TypeScript implementation with comprehensive type definitions
 - **Extensibility**: Easy to add new endpoints and capabilities
@@ -335,152 +370,186 @@ This MCP server provides comprehensive coverage of the Keycloak Admin REST API, 
 ### Keycloak Resources (Read-only operations)
 
 #### Realm Resources
+
 - `keycloak://realms` - List all realms
 - `keycloak://realm/{realm}` - Get specific realm configuration
 
 #### User Resources
+
 - `keycloak://users?realm=master&max=100&search=term&first=0` - List users in a realm
 - `keycloak://user/{userId}?realm=master` - Get user details
 - `keycloak://users/count?realm=master&search=term` - Get user count
 
 #### Client Resources
+
 - `keycloak://clients?realm=master&clientId=optional&max=100&first=0` - List clients
 - `keycloak://client/{clientUuid}?realm=master` - Get client details
 - `keycloak://client/{clientUuid}/roles?realm=master` - List client roles
 
 #### Role Resources
+
 - `keycloak://roles?realm=master&max=100&search=term` - List realm roles
 - `keycloak://role/{roleName}?realm=master` - Get role details
 
 #### Group Resources
+
 - `keycloak://groups?realm=master&max=100&search=term&first=0` - List groups
 - `keycloak://group/{groupId}?realm=master` - Get group details
 
 #### Identity Provider Resources
+
 - `keycloak://identity-providers?realm=master&alias=optional&providerId=optional` - List identity providers
 - `keycloak://identity-provider/{alias}?realm=master` - Get identity provider details
 
 #### Client Scope Resources
+
 - `keycloak://client-scopes?realm=master` - List client scopes
 
 #### Event Resources
+
 - `keycloak://events?realm=master&max=100&first=0&dateFrom=ISO&dateTo=ISO&type=EVENT_TYPE&userId=USER_ID` - Get events
 - `keycloak://admin-events?realm=master&max=100&first=0&dateFrom=ISO&dateTo=ISO&operationType=OP&authRealm=REALM` - Get admin events
 
 #### Authentication Flow Resources
+
 - `keycloak://authentication/flows?realm=master` - List authentication flows
 
 #### Organization Resources
+
 - `keycloak://organizations?realm=master&max=100&first=0&search=term` - List organizations
 
 ### Keycloak Tools (Write operations)
 
 #### Realm Management
+
 - `keycloak_create_realm` - Create a new realm
 - `keycloak_update_realm` - Update realm configuration
 - `keycloak_delete_realm` - Delete a realm
 
 #### User Management
+
 - `keycloak_create_user` - Create a new user
 - `keycloak_update_user` - Update user information
 - `keycloak_delete_user` - Delete a user
 
 #### Client Management
+
 - `keycloak_create_client` - Create a new client
 - `keycloak_update_client` - Update client configuration
 - `keycloak_delete_client` - Delete a client
 
 #### Role Management
+
 - `keycloak_create_role` - Create a realm role
 - `keycloak_update_role` - Update role details
 - `keycloak_delete_role` - Delete a role
 - `keycloak_create_client_role` - Create a client role
 
 #### Role Assignment
+
 - `keycloak_assign_realm_role` - Assign realm role to user
 - `keycloak_assign_client_role` - Assign client role to user
 - `keycloak_assign_role` - Legacy role assignment (backward compatibility)
 
 #### Group Management
+
 - `keycloak_create_group` - Create a new group
 - `keycloak_update_group` - Update group details
 - `keycloak_delete_group` - Delete a group
 
 #### Identity Provider Management
+
 - `keycloak_create_identity_provider` - Create identity provider
 - `keycloak_update_identity_provider` - Update identity provider
 - `keycloak_delete_identity_provider` - Delete identity provider
 
 #### Client Scope Management
+
 - `keycloak_create_client_scope` - Create a client scope
 
 #### Authentication Flow Management
+
 - `keycloak_create_authentication_flow` - Create authentication flow
 
 #### Organization Management
+
 - `keycloak_create_organization` - Create an organization
 
 ### Infisical Resources (Read-only operations)
 
 #### Secret Resources
+
 - `infisical://secrets?projectId=123&environment=dev&workspaceId=456&folderId=789&tagSlugs=tag1,tag2&max=100&offset=0` - List secrets with advanced filtering
 - `infisical://secret/{secretName}?projectId=123&environment=dev&workspaceId=456&folderId=789&type=shared&version=1` - Get specific secret with version support
 
 #### Project Resources
+
 - `infisical://projects?workspaceId=123&max=100&offset=0` - List projects in workspace
 - `infisical://project/{projectId}` - Get project details and configuration
 
 #### Environment Resources
+
 - `infisical://environments/{projectId}?workspaceId=123` - List environments in project
 
 #### Folder Resources
+
 - `infisical://folders?projectId=123&environment=dev&workspaceId=456&folderId=parent&max=100&offset=0` - List folders in environment
 - `infisical://folder/{folderId}?projectId=123&environment=dev&workspaceId=456` - Get folder details
 
 #### Secret Tag Resources
+
 - `infisical://secret-tags?projectId=123&max=100&offset=0` - List secret tags in project
 - `infisical://secret-tag/{tagId}?projectId=123` - Get secret tag details
 
 #### Organization Resources
+
 - `infisical://organization-memberships/{organizationId}?max=100&offset=0` - List organization memberships
 
 #### Audit Log Resources
+
 - `infisical://audit-logs?projectId=123&max=100&offset=0&eventType=SECRET_READ&userEmailFilter=user@example.com&startDate=2023-01-01&endDate=2023-12-31` - Get audit logs with advanced filtering
 
 ### Infisical Tools (Write operations)
 
 #### Secret Management
+
 - `infisical_create_secret` - Create a new secret with folder and tag support
 - `infisical_update_secret` - Update existing secret properties
 - `infisical_delete_secret` - Delete a secret from the project
 
 #### Project Management
+
 - `infisical_create_project` - Create a new project with advanced configuration
 - `infisical_update_project` - Update project settings and metadata
 - `infisical_delete_project` - Delete a project and all its contents
 
 #### Environment Management
+
 - `infisical_create_environment` - Create a new environment in project
 - `infisical_update_environment` - Update environment configuration
 - `infisical_delete_environment` - Delete an environment
 
 #### Folder Management
+
 - `infisical_create_folder` - Create a new folder for secret organization
 - `infisical_update_folder` - Update folder name and properties
 - `infisical_delete_folder` - Delete a folder and optionally its contents
 
 #### Secret Tag Management
+
 - `infisical_create_secret_tag` - Create a new tag for secret categorization
 - `infisical_update_secret_tag` - Update tag properties and color
 - `infisical_delete_secret_tag` - Delete a secret tag
 
 #### Organization Management
+
 - `infisical_update_organization_membership` - Update user role in organization
 - `infisical_delete_organization_membership` - Remove user from organization
 
 ### 🔗 Keycloak-Infisical Integration Tools
 
 #### Integration Management
+
 - `keycloak_infisical_configure_integration` - Configure integration settings
 - `keycloak_infisical_get_integration_status` - Get current integration status and configuration
 - `keycloak_infisical_store_existing_secret` - Manually store existing Keycloak secrets in Infisical
@@ -493,21 +562,24 @@ This MCP server features a powerful auto-integration system that automatically s
 
 When the integration is enabled, the following Keycloak operations will automatically store secrets in Infisical:
 
-1. **Client Creation**: 
+1. **Client Creation**:
+
    - Automatically stores client secrets for confidential clients
    - Secret naming: `KEYCLOAK_CLIENT_{clientId}_SECRET`
 
-2. **User Creation**: 
+2. **User Creation**:
+
    - Stores user passwords when provided during creation
    - Secret naming: `KEYCLOAK_USER_{username}_PASSWORD`
 
-3. **Identity Provider Setup**: 
+3. **Identity Provider Setup**:
    - Stores IdP client secrets and other sensitive configuration
    - Secret naming: `KEYCLOAK_IDP_{alias}_CLIENT_SECRET`
 
 ### 📁 Organization in Infisical
 
 All auto-generated secrets are organized with:
+
 - **Folder Structure**: Stored in `/keycloak` folder by default
 - **Consistent Naming**: Prefixed with `KEYCLOAK_` for easy identification
 - **Auto-Tagging**: Tagged with `keycloak` and `auto-generated` tags
@@ -523,6 +595,7 @@ export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
 ```
 
 **Auto-Discovery Features:**
+
 - ✅ Automatically finds or creates "Keycloak Secrets" project
 - ✅ Automatically creates `/keycloak` folder for organization
 - ✅ Automatically applies consistent naming and tagging
@@ -531,23 +604,26 @@ export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
 ### 🎯 Usage Examples
 
 #### Automatic Integration Example
+
 ```bash
 # When you create a confidential client, the secret is automatically stored in Infisical
 keycloak_create_client realm=mycompany clientId=web-app name="Web Application" protocol=openid-connect publicClient=false
 
-# Result: 
+# Result:
 # - Client created in Keycloak
 # - Client secret automatically stored in Infisical as "KEYCLOAK_CLIENT_web-app_SECRET"
 # - Secret includes metadata about realm, client, and creation context
 ```
 
 #### Manual Secret Storage
+
 ```bash
 # Store an existing secret manually
 keycloak_infisical_store_existing_secret secretName="API_KEY" secretValue="secret-key-123" context="External API integration" realm="production"
 ```
 
 #### Integration Management
+
 ```bash
 # Check integration status
 keycloak_infisical_get_integration_status
@@ -584,23 +660,27 @@ MIT
 ### Using Docker Compose (Recommended for Home Lab)
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/LimbicNode42/mike-cox-protracting.git
 cd mike-cox-protracting
 ```
 
 2. Create environment file:
+
 ```bash
 cp .env.docker .env
 # Edit .env with your configuration
 ```
 
 3. Build and run:
+
 ```bash
 docker-compose up -d
 ```
 
 4. Check health:
+
 ```bash
 curl http://localhost:8000/health
 ```
@@ -625,9 +705,44 @@ docker run -d \
 
 The Docker image runs in HTTP mode by default on port 8000. Configure the following environment variables:
 
-- **Server**: `HOST=0.0.0.0`, `PORT=8000`
-- **Keycloak**: `KEYCLOAK_URL`, `KEYCLOAK_USERNAME`, `KEYCLOAK_PASSWORD`
-- **Infisical**: `INFISICAL_TOKEN`, `INFISICAL_ORG_ID`, `INFISICAL_PROJECT_ID`, `INFISICAL_ENVIRONMENT_SLUG`
+#### Required Environment Variables
+
+**Keycloak Configuration:**
+
+- `KEYCLOAK_URL` - URL of your Keycloak instance
+- `KEYCLOAK_USERNAME` - Keycloak admin username
+- `KEYCLOAK_PASSWORD` - Keycloak admin password
+
+**Infisical Configuration:**
+
+- `INFISICAL_URL` - URL of your Infisical instance
+- `INFISICAL_CLIENT_ID` - Universal Auth client ID (recommended)
+- `INFISICAL_CLIENT_SECRET` - Universal Auth client secret (recommended)
+
+#### Optional Environment Variables
+
+**Server Configuration:**
+
+- `HOST=0.0.0.0` - Server bind address
+- `PORT=8000` - Server port
+- `NODE_ENV=production` - Environment mode
+- `LOG_LEVEL=info` - Logging level
+
+**Keycloak Optional:**
+
+- `KEYCLOAK_REALM=master` - Keycloak realm (defaults to 'master')
+- `KEYCLOAK_CLIENT_ID=admin-cli` - Keycloak client ID (defaults to 'admin-cli')
+
+**Infisical Optional:**
+
+- `INFISICAL_TOKEN` - Legacy API token (fallback if Universal Auth fails)
+- `INFISICAL_ORG_ID` - Default organization ID for resources/tools
+- `INFISICAL_PROJECT_ID` - Default project ID for resources/tools
+- `INFISICAL_ENVIRONMENT_SLUG` - Default environment (e.g., 'prod', 'dev')
+
+**Integration:**
+
+- `KEYCLOAK_INFISICAL_INTEGRATION_ENABLED=false` - Enable Keycloak-Infisical integration
 
 The MCP endpoint will be available at: `http://localhost:8000/mcp`
 
@@ -636,5 +751,5 @@ The MCP endpoint will be available at: `http://localhost:8000/mcp`
 The docker-compose.yml includes Traefik labels for reverse proxy setup. Update the host rule in the compose file:
 
 ```yaml
-- "traefik.http.routers.mike-cox-protracting.rule=Host(`mcp-keycloak-infisical.yourdomain.com`)"
+- 'traefik.http.routers.mike-cox-protracting.rule=Host(`mcp-keycloak-infisical.yourdomain.com`)'
 ```
