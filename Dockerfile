@@ -6,12 +6,22 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
 
-# Install dependencies
+# Copy source code (needed for build)
+COPY src/ ./src/
+
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci && npm cache clean --force
+
+# Build the project
+RUN npm run build
+
+# Remove dev dependencies to reduce image size
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy source code
-COPY dist/ ./dist/
+# Remove source files after build
+RUN rm -rf src/ tsconfig.json
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
