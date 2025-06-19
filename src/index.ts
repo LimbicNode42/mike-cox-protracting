@@ -9,7 +9,6 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { randomUUID } from 'node:crypto';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -17,7 +16,6 @@ import {
   ReadResourceRequestSchema,
   Tool,
   Resource,
-  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { KeycloakClient } from './keycloak/client.js';
 import { InfisicalClient } from './infisical/client.js';
@@ -868,71 +866,70 @@ async function runHttpServer(host: string, port: number) {
     });
   });
 
-  // Map to store transports by session ID
-  const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
-
-  // Handle POST requests for client-to-server communication
+  // Handle POST requests for client-to-server communication (stateless mode)
   app.post('/mcp', async (req: Request, res: Response) => {
-    // Check for existing session ID
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    let transport: StreamableHTTPServerTransport;
-
-    if (sessionId && transports[sessionId]) {
-      // Reuse existing transport
-      transport = transports[sessionId];
-    } else if (!sessionId && isInitializeRequest(req.body)) {
-      // New initialization request
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: sessionId => {
-          // Store the transport by session ID
-          transports[sessionId] = transport;
-        },
+    try {
+      // Create a new transport and server instance for each request
+      // This ensures complete isolation and works without session management
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // Disable session management
       });
 
-      // Clean up transport when closed
-      transport.onclose = () => {
-        if (transport.sessionId) {
-          delete transports[transport.sessionId];
-        }
-      };
+      // Clean up when the request is closed
+      res.on('close', () => {
+        console.log('Request closed');
+        transport.close();
+      });
 
       // Connect to the MCP server
       await server.connect(transport);
-    } else {
-      // Invalid request
-      res.status(400).json({
+
+      // Handle the request
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error('Error handling MCP request:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: 'Internal server error',
+          },
+          id: null,
+        });
+      }
+    }
+  });
+
+  // Handle GET requests (return method not allowed for stateless mode)
+  app.get('/mcp', async (req: Request, res: Response) => {
+    console.log('Received GET MCP request');
+    res.writeHead(405).end(
+      JSON.stringify({
         jsonrpc: '2.0',
         error: {
           code: -32000,
-          message: 'Bad Request: No valid session ID provided',
+          message: 'Method not allowed.',
         },
         id: null,
-      });
-      return;
-    }
-
-    // Handle the request
-    await transport.handleRequest(req, res, req.body);
+      })
+    );
   });
 
-  // Reusable handler for GET and DELETE requests
-  const handleSessionRequest = async (req: Request, res: Response) => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    if (!sessionId || !transports[sessionId]) {
-      res.status(400).send('Invalid or missing session ID');
-      return;
-    }
-
-    const transport = transports[sessionId];
-    await transport.handleRequest(req, res);
-  };
-
-  // Handle GET requests for server-to-client notifications via SSE
-  app.get('/mcp', handleSessionRequest);
-
-  // Handle DELETE requests for session termination
-  app.delete('/mcp', handleSessionRequest);
+  // Handle DELETE requests (return method not allowed for stateless mode)
+  app.delete('/mcp', async (req: Request, res: Response) => {
+    console.log('Received DELETE MCP request');
+    res.writeHead(405).end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Method not allowed.',
+        },
+        id: null,
+      })
+    );
+  });
 
   app.listen(port, host, () => {
     console.error(`MCP Server for Keycloak and Infisical started in HTTP mode on ${host}:${port}`);
