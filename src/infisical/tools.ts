@@ -9,16 +9,30 @@ export const infisicalTools: Tool[] = [
       type: 'object',
       properties: {
         secretName: { type: 'string', description: 'Name of the secret to retrieve' },
-        workspaceId: { type: 'string', description: 'Infisical workspace/project ID (optional if configured in .env)' },
+        workspaceId: {
+          type: 'string',
+          description: 'Infisical workspace/project ID (optional if configured in .env)',
+        },
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
-        environment: { type: 'string', description: 'Environment name (optional if configured in .env, defaults to dev)' },
+        environment: {
+          type: 'string',
+          description: 'Environment name (optional if configured in .env, defaults to dev)',
+        },
         secretPath: { type: 'string', description: 'Path of the secret', default: '/' },
         version: { type: 'number', description: 'Version of the secret to retrieve' },
-        type: { type: 'string', description: 'Type of secret (shared or personal)', default: 'shared' },
-        expandSecretReferences: { type: 'boolean', description: 'Whether to expand secret references', default: false }
+        type: {
+          type: 'string',
+          description: 'Type of secret (shared or personal)',
+          default: 'shared',
+        },
+        expandSecretReferences: {
+          type: 'boolean',
+          description: 'Whether to expand secret references',
+          default: false,
+        },
       },
-      required: ['secretName']
-    }
+      required: ['secretName'],
+    },
   },
 
   // ========== SECRET MANAGEMENT (WRITE) ==========
@@ -33,17 +47,25 @@ export const infisicalTools: Tool[] = [
         environment: { type: 'string', description: 'Environment name', default: 'dev' },
         secretName: { type: 'string', description: 'Name of the secret' },
         secretValue: { type: 'string', description: 'Value of the secret' },
-        secretPath: { type: 'string', description: 'Path where the secret should be created', default: '/' },
+        secretPath: {
+          type: 'string',
+          description: 'Path where the secret should be created',
+          default: '/',
+        },
         secretComment: { type: 'string', description: 'Comment for the secret' },
-        type: { type: 'string', description: 'Type of secret (shared or personal)', default: 'shared' },
+        type: {
+          type: 'string',
+          description: 'Type of secret (shared or personal)',
+          default: 'shared',
+        },
         skipMultilineEncoding: { type: 'boolean', description: 'Skip multiline encoding' },
         secretMetadata: { type: 'array', description: 'Secret metadata key-value pairs' },
         tagIds: { type: 'array', description: 'Array of tag IDs to attach to the secret' },
         secretReminderRepeatDays: { type: 'number', description: 'Reminder interval in days' },
-        secretReminderNote: { type: 'string', description: 'Reminder note' }
+        secretReminderNote: { type: 'string', description: 'Reminder note' },
       },
-      required: ['secretName', 'secretValue']
-    }
+      required: ['secretName', 'secretValue'],
+    },
   },
   {
     name: 'infisical_update_secret',
@@ -58,15 +80,19 @@ export const infisicalTools: Tool[] = [
         secretValue: { type: 'string', description: 'New value of the secret' },
         secretPath: { type: 'string', description: 'Path of the secret', default: '/' },
         secretComment: { type: 'string', description: 'New comment for the secret' },
-        type: { type: 'string', description: 'Type of secret (shared or personal)', default: 'shared' },
+        type: {
+          type: 'string',
+          description: 'Type of secret (shared or personal)',
+          default: 'shared',
+        },
         skipMultilineEncoding: { type: 'boolean', description: 'Skip multiline encoding' },
         secretMetadata: { type: 'array', description: 'Secret metadata key-value pairs' },
         tagIds: { type: 'array', description: 'Array of tag IDs to attach to the secret' },
         secretReminderRepeatDays: { type: 'number', description: 'Reminder interval in days' },
-        secretReminderNote: { type: 'string', description: 'Reminder note' }
+        secretReminderNote: { type: 'string', description: 'Reminder note' },
       },
-      required: ['secretName']
-    }
+      required: ['secretName'],
+    },
   },
   {
     name: 'infisical_delete_secret',
@@ -79,10 +105,14 @@ export const infisicalTools: Tool[] = [
         environment: { type: 'string', description: 'Environment name', default: 'dev' },
         secretName: { type: 'string', description: 'Name of the secret to delete' },
         secretPath: { type: 'string', description: 'Path of the secret', default: '/' },
-        type: { type: 'string', description: 'Type of secret (shared or personal)', default: 'shared' }
+        type: {
+          type: 'string',
+          description: 'Type of secret (shared or personal)',
+          default: 'shared',
+        },
       },
-      required: ['secretName']
-    }
+      required: ['secretName'],
+    },
   },
 
   // ========== PROJECT MANAGEMENT (WRITE) ==========
@@ -95,15 +125,22 @@ export const infisicalTools: Tool[] = [
         projectName: { type: 'string', description: 'Project name' },
         name: { type: 'string', description: 'Project name (alias for projectName)' },
         projectDescription: { type: 'string', description: 'Project description' },
-        description: { type: 'string', description: 'Project description (alias for projectDescription)' },
+        description: {
+          type: 'string',
+          description: 'Project description (alias for projectDescription)',
+        },
         slug: { type: 'string', description: 'Project slug (5-36 characters)' },
         kmsKeyId: { type: 'string', description: 'KMS key ID for encryption' },
         template: { type: 'string', description: 'Project template to apply', default: 'default' },
         type: { type: 'string', description: 'Project type', default: 'secret-manager' },
-        shouldCreateDefaultEnvs: { type: 'boolean', description: 'Create default environments', default: true }
+        shouldCreateDefaultEnvs: {
+          type: 'boolean',
+          description: 'Create default environments',
+          default: true,
+        },
       },
-      required: ['projectName']
-    }
+      required: ['projectName'],
+    },
   },
   {
     name: 'infisical_update_project',
@@ -114,10 +151,10 @@ export const infisicalTools: Tool[] = [
         workspaceId: { type: 'string', description: 'Infisical workspace/project ID' },
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
         name: { type: 'string', description: 'New project name' },
-        autoCapitalization: { type: 'boolean', description: 'Enable auto-capitalization' }
+        autoCapitalization: { type: 'boolean', description: 'Enable auto-capitalization' },
       },
-      required: ['workspaceId']
-    }
+      required: ['workspaceId'],
+    },
   },
   {
     name: 'infisical_delete_project',
@@ -126,10 +163,10 @@ export const infisicalTools: Tool[] = [
       type: 'object',
       properties: {
         workspaceId: { type: 'string', description: 'Infisical workspace/project ID' },
-        projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' }
+        projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
       },
-      required: ['workspaceId']
-    }
+      required: ['workspaceId'],
+    },
   },
 
   // ========== ENVIRONMENT MANAGEMENT (WRITE) ==========
@@ -143,10 +180,10 @@ export const infisicalTools: Tool[] = [
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
         name: { type: 'string', description: 'Environment name' },
         slug: { type: 'string', description: 'Environment slug (1-64 characters)' },
-        position: { type: 'number', description: 'Position for ordering environments', default: 1 }
+        position: { type: 'number', description: 'Position for ordering environments', default: 1 },
       },
-      required: ['workspaceId', 'name', 'slug']
-    }
+      required: ['workspaceId', 'name', 'slug'],
+    },
   },
   {
     name: 'infisical_update_environment',
@@ -159,10 +196,10 @@ export const infisicalTools: Tool[] = [
         environmentId: { type: 'string', description: 'Environment ID to update' },
         name: { type: 'string', description: 'New environment name' },
         slug: { type: 'string', description: 'New environment slug' },
-        position: { type: 'number', description: 'New position for ordering' }
+        position: { type: 'number', description: 'New position for ordering' },
       },
-      required: ['workspaceId', 'environmentId']
-    }
+      required: ['workspaceId', 'environmentId'],
+    },
   },
   {
     name: 'infisical_delete_environment',
@@ -172,10 +209,10 @@ export const infisicalTools: Tool[] = [
       properties: {
         workspaceId: { type: 'string', description: 'Infisical workspace/project ID' },
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
-        environmentId: { type: 'string', description: 'Environment ID to delete' }
+        environmentId: { type: 'string', description: 'Environment ID to delete' },
       },
-      required: ['workspaceId', 'environmentId']
-    }
+      required: ['workspaceId', 'environmentId'],
+    },
   },
 
   // ========== FOLDER MANAGEMENT (WRITE) ==========
@@ -189,10 +226,14 @@ export const infisicalTools: Tool[] = [
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
         environment: { type: 'string', description: 'Environment name' },
         name: { type: 'string', description: 'Folder name' },
-        path: { type: 'string', description: 'Parent path where folder will be created', default: '/' }
+        path: {
+          type: 'string',
+          description: 'Parent path where folder will be created',
+          default: '/',
+        },
       },
-      required: ['workspaceId', 'environment', 'name']
-    }
+      required: ['workspaceId', 'environment', 'name'],
+    },
   },
   {
     name: 'infisical_update_folder',
@@ -201,10 +242,10 @@ export const infisicalTools: Tool[] = [
       type: 'object',
       properties: {
         folderId: { type: 'string', description: 'Folder ID to update' },
-        name: { type: 'string', description: 'New folder name' }
+        name: { type: 'string', description: 'New folder name' },
       },
-      required: ['folderId']
-    }
+      required: ['folderId'],
+    },
   },
   {
     name: 'infisical_delete_folder',
@@ -216,10 +257,10 @@ export const infisicalTools: Tool[] = [
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
         environment: { type: 'string', description: 'Environment name' },
         folderId: { type: 'string', description: 'Folder ID to delete' },
-        path: { type: 'string', description: 'Folder path', default: '/' }
+        path: { type: 'string', description: 'Folder path', default: '/' },
       },
-      required: ['workspaceId', 'environment', 'folderId']
-    }
+      required: ['workspaceId', 'environment', 'folderId'],
+    },
   },
 
   // ========== SECRET TAG MANAGEMENT (WRITE) ==========
@@ -233,10 +274,10 @@ export const infisicalTools: Tool[] = [
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
         name: { type: 'string', description: 'Tag name' },
         slug: { type: 'string', description: 'Tag slug' },
-        color: { type: 'string', description: 'Tag color (hex code)', default: '#000000' }
+        color: { type: 'string', description: 'Tag color (hex code)', default: '#000000' },
       },
-      required: ['workspaceId', 'name', 'slug']
-    }
+      required: ['workspaceId', 'name', 'slug'],
+    },
   },
   {
     name: 'infisical_update_secret_tag',
@@ -249,10 +290,10 @@ export const infisicalTools: Tool[] = [
         tagId: { type: 'string', description: 'Tag ID to update' },
         name: { type: 'string', description: 'New tag name' },
         slug: { type: 'string', description: 'New tag slug' },
-        color: { type: 'string', description: 'New tag color (hex code)' }
+        color: { type: 'string', description: 'New tag color (hex code)' },
       },
-      required: ['workspaceId', 'tagId']
-    }
+      required: ['workspaceId', 'tagId'],
+    },
   },
   {
     name: 'infisical_delete_secret_tag',
@@ -262,10 +303,10 @@ export const infisicalTools: Tool[] = [
       properties: {
         workspaceId: { type: 'string', description: 'Infisical workspace/project ID' },
         projectId: { type: 'string', description: 'Infisical project ID (alias for workspaceId)' },
-        tagId: { type: 'string', description: 'Tag ID to delete' }
+        tagId: { type: 'string', description: 'Tag ID to delete' },
       },
-      required: ['workspaceId', 'tagId']
-    }
+      required: ['workspaceId', 'tagId'],
+    },
   },
 
   // ========== ORGANIZATION MANAGEMENT (WRITE) ==========
@@ -277,10 +318,10 @@ export const infisicalTools: Tool[] = [
       properties: {
         organizationId: { type: 'string', description: 'Organization ID' },
         membershipId: { type: 'string', description: 'Membership ID to update' },
-        role: { type: 'string', description: 'New role for the member' }
+        role: { type: 'string', description: 'New role for the member' },
       },
-      required: ['organizationId', 'membershipId', 'role']
-    }
+      required: ['organizationId', 'membershipId', 'role'],
+    },
   },
   {
     name: 'infisical_delete_organization_membership',
@@ -289,9 +330,9 @@ export const infisicalTools: Tool[] = [
       type: 'object',
       properties: {
         organizationId: { type: 'string', description: 'Organization ID' },
-        membershipId: { type: 'string', description: 'Membership ID to delete' }
+        membershipId: { type: 'string', description: 'Membership ID to delete' },
       },
-      required: ['organizationId', 'membershipId']
-    }
-  }
+      required: ['organizationId', 'membershipId'],
+    },
+  },
 ];

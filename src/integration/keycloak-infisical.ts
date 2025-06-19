@@ -13,7 +13,7 @@ export class KeycloakInfisicalIntegration {
   private projectDiscovered = false;
 
   constructor(
-    keycloakClient: KeycloakClient, 
+    keycloakClient: KeycloakClient,
     infisicalClient: InfisicalClient,
     config: IntegrationConfig = { enabled: false }
   ) {
@@ -30,12 +30,13 @@ export class KeycloakInfisicalIntegration {
       return this.projectId;
     }
 
-    try {      // First, try to find an existing project named "Keycloak Secrets"
+    try {
+      // First, try to find an existing project named "Keycloak Secrets"
       const projectsResult = await this.infisicalClient.listProjects({});
       const projects = JSON.parse(projectsResult.content[0].text);
-      
-      const keycloakProject = projects.workspaces?.find((p: any) => 
-        p.name === 'Keycloak Secrets' || p.name === 'keycloak-secrets'
+
+      const keycloakProject = projects.workspaces?.find(
+        (p: any) => p.name === 'Keycloak Secrets' || p.name === 'keycloak-secrets'
       );
 
       if (keycloakProject) {
@@ -46,16 +47,17 @@ export class KeycloakInfisicalIntegration {
         try {
           await this.infisicalClient.createProject({
             name: 'Keycloak Secrets',
-            description: 'Auto-generated project for storing Keycloak secrets via MCP server integration',
-            type: 'secret-manager'
+            description:
+              'Auto-generated project for storing Keycloak secrets via MCP server integration',
+            type: 'secret-manager',
           });
-            // Fetch the newly created project
+          // Fetch the newly created project
           const newProjectsResult = await this.infisicalClient.listProjects({});
           const newProjects = JSON.parse(newProjectsResult.content[0].text);
-          const newKeycloakProject = newProjects.workspaces?.find((p: any) => 
-            p.name === 'Keycloak Secrets'
+          const newKeycloakProject = newProjects.workspaces?.find(
+            (p: any) => p.name === 'Keycloak Secrets'
           );
-          
+
           if (newKeycloakProject) {
             this.projectId = newKeycloakProject.id;
             console.log(`🆕 Created new Keycloak Secrets project: ${this.projectId}`);
@@ -79,21 +81,21 @@ export class KeycloakInfisicalIntegration {
    */
   private async ensureFolder(projectId: string): Promise<string> {
     const folderPath = '/keycloak';
-    
+
     try {
       // Try to create the folder (will succeed if it doesn't exist)
       await this.infisicalClient.createFolder({
         projectId,
         environment: 'dev',
         name: 'keycloak',
-        path: '/'
+        path: '/',
       });
       console.log(`📂 Ensured Keycloak folder exists: ${folderPath}`);
     } catch (error) {
       // Folder likely already exists, which is fine
       console.log(`📂 Using existing Keycloak folder: ${folderPath}`);
     }
-    
+
     return folderPath;
   }
   /**
@@ -113,9 +115,11 @@ export class KeycloakInfisicalIntegration {
     try {
       const secretName = `KEYCLOAK_CLIENT_${clientData.clientId}_SECRET`;
       const secretValue = clientData.secret || '';
-      
+
       if (!secretValue) {
-        console.log(`No secret generated for client ${clientData.clientId}, skipping Infisical storage`);
+        console.log(
+          `No secret generated for client ${clientData.clientId}, skipping Infisical storage`
+        );
         return;
       }
 
@@ -128,10 +132,12 @@ export class KeycloakInfisicalIntegration {
         secretValue,
         secretPath: folderPath,
         secretComment: `Auto-generated client secret for Keycloak client '${clientData.clientId}' in realm '${realm}'`,
-        tagIds: ['keycloak', 'auto-generated']
+        tagIds: ['keycloak', 'auto-generated'],
       });
 
-      console.log(`✅ Stored client secret for ${clientData.clientId} in Infisical project ${projectId}`);
+      console.log(
+        `✅ Stored client secret for ${clientData.clientId} in Infisical project ${projectId}`
+      );
     } catch (error) {
       console.error(`Failed to store client secret in Infisical:`, error);
     }
@@ -154,7 +160,7 @@ export class KeycloakInfisicalIntegration {
     try {
       const secretName = `KEYCLOAK_USER_${userData.username}_PASSWORD`;
       const folderPath = await this.ensureFolder(projectId);
-      
+
       await this.infisicalClient.createSecret({
         projectId,
         environment: 'dev',
@@ -162,10 +168,12 @@ export class KeycloakInfisicalIntegration {
         secretValue: password,
         secretPath: folderPath,
         secretComment: `Auto-generated password for Keycloak user '${userData.username}' in realm '${realm}'`,
-        tagIds: ['keycloak', 'auto-generated']
+        tagIds: ['keycloak', 'auto-generated'],
       });
 
-      console.log(`✅ Stored user credentials for ${userData.username} in Infisical project ${projectId}`);
+      console.log(
+        `✅ Stored user credentials for ${userData.username} in Infisical project ${projectId}`
+      );
     } catch (error) {
       console.error(`Failed to store user credentials in Infisical:`, error);
     }
@@ -188,13 +196,15 @@ export class KeycloakInfisicalIntegration {
     try {
       const clientSecret = idpData.config?.clientSecret;
       if (!clientSecret) {
-        console.log(`No client secret for identity provider ${idpData.alias}, skipping Infisical storage`);
+        console.log(
+          `No client secret for identity provider ${idpData.alias}, skipping Infisical storage`
+        );
         return;
       }
 
       const secretName = `KEYCLOAK_IDP_${idpData.alias}_CLIENT_SECRET`;
       const folderPath = await this.ensureFolder(projectId);
-      
+
       await this.infisicalClient.createSecret({
         projectId,
         environment: 'dev',
@@ -202,10 +212,12 @@ export class KeycloakInfisicalIntegration {
         secretValue: clientSecret,
         secretPath: folderPath,
         secretComment: `Auto-generated client secret for Keycloak identity provider '${idpData.alias}' in realm '${realm}'`,
-        tagIds: ['keycloak', 'auto-generated']
+        tagIds: ['keycloak', 'auto-generated'],
       });
 
-      console.log(`✅ Stored identity provider secret for ${idpData.alias} in Infisical project ${projectId}`);
+      console.log(
+        `✅ Stored identity provider secret for ${idpData.alias} in Infisical project ${projectId}`
+      );
     } catch (error) {
       console.error(`Failed to store identity provider secret in Infisical:`, error);
     }
@@ -215,8 +227,8 @@ export class KeycloakInfisicalIntegration {
    * Store API tokens or other generated secrets
    */
   async storeGeneratedSecret(
-    secretName: string, 
-    secretValue: string, 
+    secretName: string,
+    secretValue: string,
     context: string,
     realm: string
   ): Promise<void> {
@@ -233,7 +245,7 @@ export class KeycloakInfisicalIntegration {
     try {
       const fullSecretName = `KEYCLOAK_${secretName}`;
       const folderPath = await this.ensureFolder(projectId);
-      
+
       await this.infisicalClient.createSecret({
         projectId,
         environment: 'dev',
@@ -241,7 +253,7 @@ export class KeycloakInfisicalIntegration {
         secretValue,
         secretPath: folderPath,
         secretComment: `Auto-generated secret from Keycloak: ${context} in realm '${realm}'`,
-        tagIds: ['keycloak', 'auto-generated']
+        tagIds: ['keycloak', 'auto-generated'],
       });
 
       console.log(`✅ Stored generated secret ${fullSecretName} in Infisical project ${projectId}`);
@@ -267,7 +279,7 @@ export class KeycloakInfisicalIntegration {
     try {
       const secretName = `KEYCLOAK_REALM_${realmData.realm || realmData.id}_${secretType}`;
       const folderPath = await this.ensureFolder(projectId);
-      
+
       await this.infisicalClient.createSecret({
         projectId,
         environment: 'dev',
@@ -275,7 +287,7 @@ export class KeycloakInfisicalIntegration {
         secretValue,
         secretPath: folderPath,
         secretComment: `Auto-generated ${secretType} for Keycloak realm '${realmData.realm || realmData.id}'`,
-        tagIds: ['keycloak', 'auto-generated']
+        tagIds: ['keycloak', 'auto-generated'],
       });
 
       console.log(`✅ Stored realm secret ${secretName} in Infisical project ${projectId}`);

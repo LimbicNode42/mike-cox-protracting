@@ -43,9 +43,10 @@ export class InfisicalClient {
     // Universal Auth (fallback) - requires authentication flow
     else if (config.clientId && config.clientSecret) {
       // Will authenticate via Universal Auth when needed
-    }
-    else {
-      throw new Error('Either token (preferred) or clientId + clientSecret (fallback) must be provided');
+    } else {
+      throw new Error(
+        'Either token (preferred) or clientId + clientSecret (fallback) must be provided'
+      );
     }
   }
 
@@ -72,7 +73,9 @@ export class InfisicalClient {
 
       // Use Universal Auth as fallback
       if (!this.config.clientId || !this.config.clientSecret) {
-        throw new Error('Client ID and Client Secret are required for Universal Auth when token is not provided');
+        throw new Error(
+          'Client ID and Client Secret are required for Universal Auth when token is not provided'
+        );
       }
 
       const response = await axios.post(
@@ -86,19 +89,25 @@ export class InfisicalClient {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
         }
-      );      const tokenData: AccessTokenData = {
+      );
+      const tokenData: AccessTokenData = {
         ...response.data,
-        expiresAt: Date.now() + (response.data.expiresIn * 1000),
+        expiresAt: Date.now() + response.data.expiresIn * 1000,
       };
-      
+
       this.accessTokenData = tokenData;
 
       // Set the authorization header
-      this.axiosInstance.defaults.headers.common['Authorization'] = `${tokenData.tokenType} ${tokenData.accessToken}`;
-      
-      console.log(`✅ Infisical Universal Auth successful. Token expires in ${tokenData.expiresIn} seconds.`);
+      this.axiosInstance.defaults.headers.common['Authorization'] =
+        `${tokenData.tokenType} ${tokenData.accessToken}`;
+
+      console.log(
+        `✅ Infisical Universal Auth successful. Token expires in ${tokenData.expiresIn} seconds.`
+      );
     } catch (error: any) {
-      throw new Error(`Failed to authenticate with Infisical: ${error.response?.data?.message || error.message}`);
+      throw new Error(
+        `Failed to authenticate with Infisical: ${error.response?.data?.message || error.message}`
+      );
     } finally {
       this.isAuthenticating = false;
     }
@@ -118,18 +127,22 @@ export class InfisicalClient {
         {},
         {
           headers: {
-            'Authorization': `${this.accessTokenData.tokenType} ${this.accessTokenData.accessToken}`,
+            Authorization: `${this.accessTokenData.tokenType} ${this.accessTokenData.accessToken}`,
           },
         }
-      );      const newTokenData: AccessTokenData = {
+      );
+      const newTokenData: AccessTokenData = {
         ...response.data,
-        expiresAt: Date.now() + (response.data.expiresIn * 1000),
+        expiresAt: Date.now() + response.data.expiresIn * 1000,
       };
 
       this.accessTokenData = newTokenData;
-      this.axiosInstance.defaults.headers.common['Authorization'] = `${newTokenData.tokenType} ${newTokenData.accessToken}`;
-      
-      console.log(`🔄 Infisical token renewed. New expiration in ${newTokenData.expiresIn} seconds.`);
+      this.axiosInstance.defaults.headers.common['Authorization'] =
+        `${newTokenData.tokenType} ${newTokenData.accessToken}`;
+
+      console.log(
+        `🔄 Infisical token renewed. New expiration in ${newTokenData.expiresIn} seconds.`
+      );
     } catch (error: any) {
       console.warn('Failed to renew token, will re-authenticate:', error.message);
       this.accessTokenData = null;
@@ -161,7 +174,7 @@ export class InfisicalClient {
   }
 
   // ========== SECRET MANAGEMENT ==========
-    async listSecrets(args: any): Promise<any> {
+  async listSecrets(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
       const params: any = {
@@ -173,7 +186,7 @@ export class InfisicalClient {
         recursive: args.recursive || false,
         include_imports: args.includeImports || false,
       };
-      
+
       if (args.workspaceSlug) params.workspaceSlug = args.workspaceSlug;
       if (args.metadataFilter) params.metadataFilter = args.metadataFilter;
       if (args.tagSlugs) params.tagSlugs = args.tagSlugs;
@@ -199,10 +212,12 @@ export class InfisicalClient {
         type: args.type || 'shared',
         expandSecretReferences: args.expandSecretReferences || false,
       };
-      
+
       if (args.workspaceSlug) params.workspaceSlug = args.workspaceSlug;
 
-      const response = await this.axiosInstance.get(`/v3/secrets/raw/${args.secretName}`, { params });
+      const response = await this.axiosInstance.get(`/v3/secrets/raw/${args.secretName}`, {
+        params,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -228,7 +243,8 @@ export class InfisicalClient {
 
       if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
       if (args.tagIds) data.tagIds = args.tagIds;
-      if (args.secretReminderRepeatDays) data.secretReminderRepeatDays = args.secretReminderRepeatDays;
+      if (args.secretReminderRepeatDays)
+        data.secretReminderRepeatDays = args.secretReminderRepeatDays;
       if (args.secretReminderNote) data.secretReminderNote = args.secretReminderNote;
 
       const response = await this.axiosInstance.post(`/v3/secrets/raw/${args.secretName}`, data);
@@ -257,7 +273,8 @@ export class InfisicalClient {
       if (args.secretComment !== undefined) data.secretComment = args.secretComment;
       if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
       if (args.tagIds) data.tagIds = args.tagIds;
-      if (args.secretReminderRepeatDays !== undefined) data.secretReminderRepeatDays = args.secretReminderRepeatDays;
+      if (args.secretReminderRepeatDays !== undefined)
+        data.secretReminderRepeatDays = args.secretReminderRepeatDays;
       if (args.secretReminderNote !== undefined) data.secretReminderNote = args.secretReminderNote;
 
       const response = await this.axiosInstance.patch(`/v3/secrets/raw/${args.secretName}`, data);
@@ -301,10 +318,15 @@ export class InfisicalClient {
       const orgId = this.config.orgId;
       if (!orgId) {
         return {
-          content: [{ type: 'text', text: `Error: Organization ID is required. Please set INFISICAL_ORG_ID in your environment.` }],
+          content: [
+            {
+              type: 'text',
+              text: `Error: Organization ID is required. Please set INFISICAL_ORG_ID in your environment.`,
+            },
+          ],
         };
       }
-      
+
       const response = await this.axiosInstance.get(`/v2/organizations/${orgId}/workspaces`);
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
@@ -323,7 +345,8 @@ export class InfisicalClient {
         projectName: args.projectName || args.name,
         projectDescription: args.projectDescription || args.description,
         type: args.type || 'secret-manager',
-        shouldCreateDefaultEnvs: args.shouldCreateDefaultEnvs !== undefined ? args.shouldCreateDefaultEnvs : true,
+        shouldCreateDefaultEnvs:
+          args.shouldCreateDefaultEnvs !== undefined ? args.shouldCreateDefaultEnvs : true,
       };
 
       if (args.slug) data.slug = args.slug;
@@ -332,7 +355,9 @@ export class InfisicalClient {
 
       const response = await this.axiosInstance.post('/v2/workspace', data);
       return {
-        content: [{ type: 'text', text: `Project '${args.projectName || args.name}' created successfully` }],
+        content: [
+          { type: 'text', text: `Project '${args.projectName || args.name}' created successfully` },
+        ],
       };
     } catch (error: any) {
       return {
@@ -344,7 +369,9 @@ export class InfisicalClient {
   async getProject(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}`);
+      const response = await this.axiosInstance.get(
+        `/v1/workspace/${args.workspaceId || args.projectId}`
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -359,11 +386,14 @@ export class InfisicalClient {
     await this.ensureAuthenticated();
     try {
       const data: any = {};
-      
+
       if (args.name !== undefined) data.name = args.name;
       if (args.autoCapitalization !== undefined) data.autoCapitalization = args.autoCapitalization;
 
-      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}`, data);
+      const response = await this.axiosInstance.patch(
+        `/v1/workspace/${args.workspaceId || args.projectId}`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Project updated successfully` }],
       };
@@ -393,7 +423,9 @@ export class InfisicalClient {
   async listEnvironments(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/environments`);
+      const response = await this.axiosInstance.get(
+        `/v1/workspace/${args.workspaceId || args.projectId}/environments`
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -413,7 +445,10 @@ export class InfisicalClient {
         position: args.position || 1,
       };
 
-      const response = await this.axiosInstance.post(`/v1/workspace/${args.workspaceId || args.projectId}/environments`, data);
+      const response = await this.axiosInstance.post(
+        `/v1/workspace/${args.workspaceId || args.projectId}/environments`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Environment '${args.name}' created successfully` }],
       };
@@ -428,12 +463,15 @@ export class InfisicalClient {
     await this.ensureAuthenticated();
     try {
       const data: any = {};
-      
+
       if (args.name !== undefined) data.name = args.name;
       if (args.slug !== undefined) data.slug = args.slug;
       if (args.position !== undefined) data.position = args.position;
 
-      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`, data);
+      const response = await this.axiosInstance.patch(
+        `/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Environment updated successfully` }],
       };
@@ -447,7 +485,9 @@ export class InfisicalClient {
   async deleteEnvironment(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`);
+      await this.axiosInstance.delete(
+        `/v1/workspace/${args.workspaceId || args.projectId}/environments/${args.environmentId}`
+      );
       return {
         content: [{ type: 'text', text: `Environment deleted successfully` }],
       };
@@ -523,7 +563,7 @@ export class InfisicalClient {
     await this.ensureAuthenticated();
     try {
       const data: any = {};
-      
+
       if (args.name !== undefined) data.name = args.name;
 
       const response = await this.axiosInstance.patch(`/v1/folders/${args.folderId}`, data);
@@ -562,7 +602,9 @@ export class InfisicalClient {
   async listSecretTags(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags`);
+      const response = await this.axiosInstance.get(
+        `/v1/workspace/${args.workspaceId || args.projectId}/tags`
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -576,7 +618,9 @@ export class InfisicalClient {
   async getSecretTag(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
+      const response = await this.axiosInstance.get(
+        `/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -596,7 +640,10 @@ export class InfisicalClient {
         color: args.color || '#000000',
       };
 
-      const response = await this.axiosInstance.post(`/v1/workspace/${args.workspaceId || args.projectId}/tags`, data);
+      const response = await this.axiosInstance.post(
+        `/v1/workspace/${args.workspaceId || args.projectId}/tags`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Secret tag '${args.name}' created successfully` }],
       };
@@ -611,12 +658,15 @@ export class InfisicalClient {
     await this.ensureAuthenticated();
     try {
       const data: any = {};
-      
+
       if (args.name !== undefined) data.name = args.name;
       if (args.slug !== undefined) data.slug = args.slug;
       if (args.color !== undefined) data.color = args.color;
 
-      const response = await this.axiosInstance.patch(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`, data);
+      const response = await this.axiosInstance.patch(
+        `/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Secret tag updated successfully` }],
       };
@@ -630,7 +680,9 @@ export class InfisicalClient {
   async deleteSecretTag(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      await this.axiosInstance.delete(`/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`);
+      await this.axiosInstance.delete(
+        `/v1/workspace/${args.workspaceId || args.projectId}/tags/${args.tagId}`
+      );
       return {
         content: [{ type: 'text', text: `Secret tag deleted successfully` }],
       };
@@ -646,7 +698,9 @@ export class InfisicalClient {
   async getOrganizationMemberships(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.axiosInstance.get(`/v2/organizations/${args.organizationId}/memberships`);
+      const response = await this.axiosInstance.get(
+        `/v2/organizations/${args.organizationId}/memberships`
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }],
       };
@@ -664,7 +718,10 @@ export class InfisicalClient {
         role: args.role,
       };
 
-      const response = await this.axiosInstance.patch(`/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`, data);
+      const response = await this.axiosInstance.patch(
+        `/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`,
+        data
+      );
       return {
         content: [{ type: 'text', text: `Organization membership updated successfully` }],
       };
@@ -678,7 +735,9 @@ export class InfisicalClient {
   async deleteOrganizationMembership(args: any): Promise<any> {
     await this.ensureAuthenticated();
     try {
-      await this.axiosInstance.delete(`/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`);
+      await this.axiosInstance.delete(
+        `/v2/organizations/${args.organizationId}/memberships/${args.membershipId}`
+      );
       return {
         content: [{ type: 'text', text: `Organization membership deleted successfully` }],
       };

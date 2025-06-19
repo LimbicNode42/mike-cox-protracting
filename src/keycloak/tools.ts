@@ -10,20 +10,20 @@ export const keycloakTools: Tool[] = [
       properties: {
         realm: {
           type: 'string',
-          description: 'Realm name/ID'
+          description: 'Realm name/ID',
         },
         displayName: {
           type: 'string',
-          description: 'Display name for the realm'
+          description: 'Display name for the realm',
         },
         enabled: {
           type: 'boolean',
           description: 'Whether the realm is enabled',
-          default: true
-        }
+          default: true,
+        },
       },
-      required: ['realm']
-    }
+      required: ['realm'],
+    },
   },
   {
     name: 'keycloak_update_realm',
@@ -34,19 +34,19 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Realm name to update',
-          default: 'master'
+          default: 'master',
         },
         displayName: {
           type: 'string',
-          description: 'New display name for the realm'
+          description: 'New display name for the realm',
         },
         enabled: {
           type: 'boolean',
-          description: 'Whether the realm is enabled'
-        }
+          description: 'Whether the realm is enabled',
+        },
       },
-      required: ['realm']
-    }
+      required: ['realm'],
+    },
   },
   {
     name: 'keycloak_delete_realm',
@@ -56,11 +56,11 @@ export const keycloakTools: Tool[] = [
       properties: {
         realm: {
           type: 'string',
-          description: 'Realm name to delete'
-        }
+          description: 'Realm name to delete',
+        },
       },
-      required: ['realm']
-    }
+      required: ['realm'],
+    },
   },
 
   // ========== USER MANAGEMENT (WRITE) ==========
@@ -73,41 +73,41 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         username: {
           type: 'string',
-          description: 'Username for the new user'
+          description: 'Username for the new user',
         },
         email: {
           type: 'string',
-          description: 'Email address for the new user'
+          description: 'Email address for the new user',
         },
         firstName: {
           type: 'string',
-          description: 'First name of the user'
+          description: 'First name of the user',
         },
         lastName: {
           type: 'string',
-          description: 'Last name of the user'
+          description: 'Last name of the user',
         },
         password: {
           type: 'string',
-          description: 'Initial password for the user'
+          description: 'Initial password for the user',
         },
         enabled: {
           type: 'boolean',
           description: 'Whether the user account is enabled',
-          default: true
+          default: true,
         },
         emailVerified: {
           type: 'boolean',
           description: 'Whether the email is verified',
-          default: false
-        }
+          default: false,
+        },
       },
-      required: ['username']
-    }
+      required: ['username'],
+    },
   },
   {
     name: 'keycloak_update_user',
@@ -118,35 +118,35 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         userId: {
           type: 'string',
-          description: 'User ID to update'
+          description: 'User ID to update',
         },
         username: {
           type: 'string',
-          description: 'New username'
+          description: 'New username',
         },
         email: {
           type: 'string',
-          description: 'New email address'
+          description: 'New email address',
         },
         firstName: {
           type: 'string',
-          description: 'New first name'
+          description: 'New first name',
         },
         lastName: {
           type: 'string',
-          description: 'New last name'
+          description: 'New last name',
         },
         enabled: {
           type: 'boolean',
-          description: 'Enable or disable the user account'
-        }
+          description: 'Enable or disable the user account',
+        },
       },
-      required: ['userId']
-    }
+      required: ['userId'],
+    },
   },
   {
     name: 'keycloak_delete_user',
@@ -157,15 +157,15 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         userId: {
           type: 'string',
-          description: 'User ID to delete'
-        }
+          description: 'User ID to delete',
+        },
       },
-      required: ['userId']
-    }
+      required: ['userId'],
+    },
   },
 
   // ========== CLIENT MANAGEMENT (WRITE) ==========
@@ -178,40 +178,40 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         clientId: {
           type: 'string',
-          description: 'Client ID for the new client'
+          description: 'Client ID for the new client',
         },
         name: {
           type: 'string',
-          description: 'Display name for the client'
+          description: 'Display name for the client',
         },
         description: {
           type: 'string',
-          description: 'Description of the client'
+          description: 'Description of the client',
         },
         protocol: {
           type: 'string',
           description: 'Client protocol',
-          default: 'openid-connect'
+          default: 'openid-connect',
         },
         publicClient: {
           type: 'boolean',
           description: 'Whether this is a public client',
-          default: false
+          default: false,
         },
         redirectUris: {
           type: 'array',
           items: {
-            type: 'string'
+            type: 'string',
           },
-          description: 'Valid redirect URIs for the client'
-        }
+          description: 'Valid redirect URIs for the client',
+        },
       },
-      required: ['clientId']
-    }
+      required: ['clientId'],
+    },
   },
   {
     name: 'keycloak_update_client',
@@ -222,34 +222,34 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         clientUuid: {
           type: 'string',
-          description: 'Client UUID to update'
+          description: 'Client UUID to update',
         },
         name: {
           type: 'string',
-          description: 'New display name for the client'
+          description: 'New display name for the client',
         },
         description: {
           type: 'string',
-          description: 'New description of the client'
+          description: 'New description of the client',
         },
         enabled: {
           type: 'boolean',
-          description: 'Whether the client is enabled'
+          description: 'Whether the client is enabled',
         },
         redirectUris: {
           type: 'array',
           items: {
-            type: 'string'
+            type: 'string',
           },
-          description: 'Updated redirect URIs for the client'
-        }
+          description: 'Updated redirect URIs for the client',
+        },
       },
-      required: ['clientUuid']
-    }
+      required: ['clientUuid'],
+    },
   },
   {
     name: 'keycloak_delete_client',
@@ -260,15 +260,15 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         clientUuid: {
           type: 'string',
-          description: 'Client UUID to delete'
-        }
+          description: 'Client UUID to delete',
+        },
       },
-      required: ['clientUuid']
-    }
+      required: ['clientUuid'],
+    },
   },
 
   // ========== ROLE MANAGEMENT (WRITE) ==========
@@ -281,19 +281,19 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         name: {
           type: 'string',
-          description: 'Role name'
+          description: 'Role name',
         },
         description: {
           type: 'string',
-          description: 'Role description'
-        }
+          description: 'Role description',
+        },
       },
-      required: ['name']
-    }
+      required: ['name'],
+    },
   },
   {
     name: 'keycloak_update_role',
@@ -304,23 +304,23 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         roleName: {
           type: 'string',
-          description: 'Role name to update'
+          description: 'Role name to update',
         },
         name: {
           type: 'string',
-          description: 'New role name'
+          description: 'New role name',
         },
         description: {
           type: 'string',
-          description: 'New role description'
-        }
+          description: 'New role description',
+        },
       },
-      required: ['roleName']
-    }
+      required: ['roleName'],
+    },
   },
   {
     name: 'keycloak_delete_role',
@@ -331,15 +331,15 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         roleName: {
           type: 'string',
-          description: 'Role name to delete'
-        }
+          description: 'Role name to delete',
+        },
       },
-      required: ['roleName']
-    }
+      required: ['roleName'],
+    },
   },
   {
     name: 'keycloak_create_client_role',
@@ -350,23 +350,23 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         clientUuid: {
           type: 'string',
-          description: 'Client UUID'
+          description: 'Client UUID',
         },
         name: {
           type: 'string',
-          description: 'Role name'
+          description: 'Role name',
         },
         description: {
           type: 'string',
-          description: 'Role description'
-        }
+          description: 'Role description',
+        },
       },
-      required: ['clientUuid', 'name']
-    }
+      required: ['clientUuid', 'name'],
+    },
   },
 
   // ========== ROLE ASSIGNMENT (WRITE) ==========
@@ -379,19 +379,19 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         userId: {
           type: 'string',
-          description: 'User ID to assign role to'
+          description: 'User ID to assign role to',
         },
         roleName: {
           type: 'string',
-          description: 'Realm role name to assign'
-        }
+          description: 'Realm role name to assign',
+        },
       },
-      required: ['userId', 'roleName']
-    }
+      required: ['userId', 'roleName'],
+    },
   },
   {
     name: 'keycloak_assign_client_role',
@@ -402,23 +402,23 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         userId: {
           type: 'string',
-          description: 'User ID to assign role to'
+          description: 'User ID to assign role to',
         },
         clientUuid: {
           type: 'string',
-          description: 'Client UUID'
+          description: 'Client UUID',
         },
         roleName: {
           type: 'string',
-          description: 'Client role name to assign'
-        }
+          description: 'Client role name to assign',
+        },
       },
-      required: ['userId', 'clientUuid', 'roleName']
-    }
+      required: ['userId', 'clientUuid', 'roleName'],
+    },
   },
 
   // ========== GROUP MANAGEMENT (WRITE) ==========
@@ -431,19 +431,19 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         name: {
           type: 'string',
-          description: 'Group name'
+          description: 'Group name',
         },
         path: {
           type: 'string',
-          description: 'Group path'
-        }
+          description: 'Group path',
+        },
       },
-      required: ['name']
-    }
+      required: ['name'],
+    },
   },
   {
     name: 'keycloak_update_group',
@@ -454,23 +454,23 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         groupId: {
           type: 'string',
-          description: 'Group ID to update'
+          description: 'Group ID to update',
         },
         name: {
           type: 'string',
-          description: 'New group name'
+          description: 'New group name',
         },
         path: {
           type: 'string',
-          description: 'New group path'
-        }
+          description: 'New group path',
+        },
       },
-      required: ['groupId']
-    }
+      required: ['groupId'],
+    },
   },
   {
     name: 'keycloak_delete_group',
@@ -481,15 +481,15 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         groupId: {
           type: 'string',
-          description: 'Group ID to delete'
-        }
+          description: 'Group ID to delete',
+        },
       },
-      required: ['groupId']
-    }
+      required: ['groupId'],
+    },
   },
 
   // ========== IDENTITY PROVIDER MANAGEMENT (WRITE) ==========
@@ -502,28 +502,28 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         alias: {
           type: 'string',
-          description: 'Identity provider alias'
+          description: 'Identity provider alias',
         },
         providerId: {
           type: 'string',
-          description: 'Identity provider type (e.g., saml, oidc, google)'
+          description: 'Identity provider type (e.g., saml, oidc, google)',
         },
         displayName: {
           type: 'string',
-          description: 'Display name for the identity provider'
+          description: 'Display name for the identity provider',
         },
         enabled: {
           type: 'boolean',
           description: 'Whether the identity provider is enabled',
-          default: true
-        }
+          default: true,
+        },
       },
-      required: ['alias', 'providerId']
-    }
+      required: ['alias', 'providerId'],
+    },
   },
   {
     name: 'keycloak_update_identity_provider',
@@ -534,23 +534,23 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         alias: {
           type: 'string',
-          description: 'Identity provider alias to update'
+          description: 'Identity provider alias to update',
         },
         displayName: {
           type: 'string',
-          description: 'New display name for the identity provider'
+          description: 'New display name for the identity provider',
         },
         enabled: {
           type: 'boolean',
-          description: 'Whether the identity provider is enabled'
-        }
+          description: 'Whether the identity provider is enabled',
+        },
       },
-      required: ['alias']
-    }
+      required: ['alias'],
+    },
   },
   {
     name: 'keycloak_delete_identity_provider',
@@ -561,15 +561,15 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         alias: {
           type: 'string',
-          description: 'Identity provider alias to delete'
-        }
+          description: 'Identity provider alias to delete',
+        },
       },
-      required: ['alias']
-    }
+      required: ['alias'],
+    },
   },
 
   // ========== CLIENT SCOPE MANAGEMENT (WRITE) ==========
@@ -582,24 +582,24 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         name: {
           type: 'string',
-          description: 'Client scope name'
+          description: 'Client scope name',
         },
         description: {
           type: 'string',
-          description: 'Client scope description'
+          description: 'Client scope description',
         },
         protocol: {
           type: 'string',
           description: 'Protocol for the client scope',
-          default: 'openid-connect'
-        }
+          default: 'openid-connect',
+        },
       },
-      required: ['name']
-    }
+      required: ['name'],
+    },
   },
 
   // ========== AUTHENTICATION FLOW MANAGEMENT (WRITE) ==========
@@ -612,24 +612,24 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         alias: {
           type: 'string',
-          description: 'Authentication flow alias'
+          description: 'Authentication flow alias',
         },
         description: {
           type: 'string',
-          description: 'Authentication flow description'
+          description: 'Authentication flow description',
         },
         topLevel: {
           type: 'boolean',
           description: 'Whether this is a top-level flow',
-          default: true
-        }
+          default: true,
+        },
       },
-      required: ['alias']
-    }
+      required: ['alias'],
+    },
   },
 
   // ========== ORGANIZATION MANAGEMENT (WRITE) ==========
@@ -642,47 +642,48 @@ export const keycloakTools: Tool[] = [
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         name: {
           type: 'string',
-          description: 'Organization name'
+          description: 'Organization name',
         },
         description: {
           type: 'string',
-          description: 'Organization description'
-        }
+          description: 'Organization description',
+        },
       },
-      required: ['name']
-    }
+      required: ['name'],
+    },
   },
 
   // ========== BACKWARD COMPATIBILITY ==========
   {
     name: 'keycloak_assign_role',
-    description: 'Assign role to a user in Keycloak (backward compatibility - use keycloak_assign_realm_role or keycloak_assign_client_role)',
+    description:
+      'Assign role to a user in Keycloak (backward compatibility - use keycloak_assign_realm_role or keycloak_assign_client_role)',
     inputSchema: {
       type: 'object',
       properties: {
         realm: {
           type: 'string',
           description: 'Keycloak realm name',
-          default: 'master'
+          default: 'master',
         },
         userId: {
           type: 'string',
-          description: 'User ID to assign role to'
+          description: 'User ID to assign role to',
         },
         roleName: {
           type: 'string',
-          description: 'Role name to assign'
+          description: 'Role name to assign',
         },
         clientId: {
           type: 'string',
-          description: 'Client ID for client-specific roles (optional)'
-        }
+          description: 'Client ID for client-specific roles (optional)',
+        },
       },
-      required: ['userId', 'roleName']
-    }
-  }
+      required: ['userId', 'roleName'],
+    },
+  },
 ];

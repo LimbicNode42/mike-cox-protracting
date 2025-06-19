@@ -7,22 +7,24 @@ export const integrationTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        enabled: { 
-          type: 'boolean', 
-          description: 'Enable or disable the integration. When enabled, the system will auto-discover or create a "Keycloak Secrets" project and "/keycloak" folder.' 
-        }
+        enabled: {
+          type: 'boolean',
+          description:
+            'Enable or disable the integration. When enabled, the system will auto-discover or create a "Keycloak Secrets" project and "/keycloak" folder.',
+        },
       },
-      required: ['enabled']
-    }
+      required: ['enabled'],
+    },
   },
   {
     name: 'keycloak_infisical_get_integration_status',
-    description: 'Get the current status and configuration of the Keycloak-Infisical integration with auto-discovery details',
+    description:
+      'Get the current status and configuration of the Keycloak-Infisical integration with auto-discovery details',
     inputSchema: {
       type: 'object',
       properties: {},
-      required: []
-    }
+      required: [],
+    },
   },
   {
     name: 'keycloak_infisical_store_existing_secret',
@@ -30,25 +32,25 @@ export const integrationTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        secretName: { 
-          type: 'string', 
-          description: 'Name for the secret in Infisical' 
+        secretName: {
+          type: 'string',
+          description: 'Name for the secret in Infisical',
         },
-        secretValue: { 
-          type: 'string', 
-          description: 'Secret value to store' 
+        secretValue: {
+          type: 'string',
+          description: 'Secret value to store',
         },
-        context: { 
-          type: 'string', 
-          description: 'Context or description of the secret' 
+        context: {
+          type: 'string',
+          description: 'Context or description of the secret',
         },
-        realm: { 
-          type: 'string', 
+        realm: {
+          type: 'string',
           description: 'Keycloak realm the secret belongs to',
-          default: 'master'
-        }
+          default: 'master',
+        },
       },
-      required: ['secretName', 'secretValue', 'context']
-    }
-  }
+      required: ['secretName', 'secretValue', 'context'],
+    },
+  },
 ];
