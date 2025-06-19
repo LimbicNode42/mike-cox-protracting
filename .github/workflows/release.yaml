@@ -62,7 +62,7 @@ jobs:
         uses: peter-evans/dockerhub-description@v4
         if: github.repository_owner == github.actor
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ github.repository }}
           short-description: "MCP Server for Keycloak and Infisical integration"
