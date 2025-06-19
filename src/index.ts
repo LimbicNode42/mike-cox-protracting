@@ -6,9 +6,10 @@ dotenv.config();
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import { randomUUID } from 'node:crypto';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -16,6 +17,7 @@ import {
   ReadResourceRequestSchema,
   Tool,
   Resource,
+  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { KeycloakClient } from './keycloak/client.js';
 import { InfisicalClient } from './infisical/client.js';
@@ -865,11 +867,72 @@ async function runHttpServer(host: string, port: number) {
       infisical: infisicalClient ? 'configured' : 'not configured',
     });
   });
-  // MCP Server endpoint using SSE transport
+
+  // Map to store transports by session ID
+  const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+
+  // Handle POST requests for client-to-server communication
   app.post('/mcp', async (req: Request, res: Response) => {
-    const transport = new SSEServerTransport('/mcp', res);
-    await server.connect(transport);
+    // Check for existing session ID
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    let transport: StreamableHTTPServerTransport;
+
+    if (sessionId && transports[sessionId]) {
+      // Reuse existing transport
+      transport = transports[sessionId];
+    } else if (!sessionId && isInitializeRequest(req.body)) {
+      // New initialization request
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: sessionId => {
+          // Store the transport by session ID
+          transports[sessionId] = transport;
+        },
+      });
+
+      // Clean up transport when closed
+      transport.onclose = () => {
+        if (transport.sessionId) {
+          delete transports[transport.sessionId];
+        }
+      };
+
+      // Connect to the MCP server
+      await server.connect(transport);
+    } else {
+      // Invalid request
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Bad Request: No valid session ID provided',
+        },
+        id: null,
+      });
+      return;
+    }
+
+    // Handle the request
+    await transport.handleRequest(req, res, req.body);
   });
+
+  // Reusable handler for GET and DELETE requests
+  const handleSessionRequest = async (req: Request, res: Response) => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    if (!sessionId || !transports[sessionId]) {
+      res.status(400).send('Invalid or missing session ID');
+      return;
+    }
+
+    const transport = transports[sessionId];
+    await transport.handleRequest(req, res);
+  };
+
+  // Handle GET requests for server-to-client notifications via SSE
+  app.get('/mcp', handleSessionRequest);
+
+  // Handle DELETE requests for session termination
+  app.delete('/mcp', handleSessionRequest);
 
   app.listen(port, host, () => {
     console.error(`MCP Server for Keycloak and Infisical started in HTTP mode on ${host}:${port}`);
