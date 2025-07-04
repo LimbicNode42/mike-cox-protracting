@@ -241,8 +241,6 @@ export class InfisicalClient {
         skipMultilineEncoding: args.skipMultilineEncoding || false,
       };
 
-      if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
-      if (args.tagIds) data.tagIds = args.tagIds;
       if (args.secretReminderRepeatDays)
         data.secretReminderRepeatDays = args.secretReminderRepeatDays;
       if (args.secretReminderNote) data.secretReminderNote = args.secretReminderNote;
@@ -271,8 +269,6 @@ export class InfisicalClient {
 
       if (args.secretValue !== undefined) data.secretValue = args.secretValue;
       if (args.secretComment !== undefined) data.secretComment = args.secretComment;
-      if (args.secretMetadata) data.secretMetadata = args.secretMetadata;
-      if (args.tagIds) data.tagIds = args.tagIds;
       if (args.secretReminderRepeatDays !== undefined)
         data.secretReminderRepeatDays = args.secretReminderRepeatDays;
       if (args.secretReminderNote !== undefined) data.secretReminderNote = args.secretReminderNote;

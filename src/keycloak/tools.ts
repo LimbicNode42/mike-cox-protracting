@@ -204,6 +204,7 @@ export const keycloakTools: Tool[] = [
         },
         redirectUris: {
           type: 'array',
+          default: [],
           items: {
             type: 'string',
           },
@@ -242,6 +243,7 @@ export const keycloakTools: Tool[] = [
         },
         redirectUris: {
           type: 'array',
+          default: [],
           items: {
             type: 'string',
           },
