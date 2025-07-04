@@ -59,25 +59,6 @@ export const infisicalTools: Tool[] = [
           default: 'shared',
         },
         skipMultilineEncoding: { type: 'boolean', description: 'Skip multiline encoding' },
-        secretMetadata: {
-          type: 'array',
-          description: 'Secret metadata key-value pairs',
-          items: {
-            type: 'object',
-            properties: {
-              key: { type: 'string' },
-              value: { type: 'string' },
-            },
-            required: ['key', 'value'],
-          },
-        },
-        tagIds: {
-          type: 'array',
-          description: 'Array of tag IDs to attach to the secret',
-          items: {
-            type: 'string',
-          },
-        },
         secretReminderRepeatDays: { type: 'number', description: 'Reminder interval in days' },
         secretReminderNote: { type: 'string', description: 'Reminder note' },
       },
@@ -103,25 +84,6 @@ export const infisicalTools: Tool[] = [
           default: 'shared',
         },
         skipMultilineEncoding: { type: 'boolean', description: 'Skip multiline encoding' },
-        secretMetadata: {
-          type: 'array',
-          description: 'Secret metadata key-value pairs',
-          items: {
-            type: 'object',
-            properties: {
-              key: { type: 'string' },
-              value: { type: 'string' },
-            },
-            required: ['key', 'value'],
-          },
-        },
-        tagIds: {
-          type: 'array',
-          description: 'Array of tag IDs to attach to the secret',
-          items: {
-            type: 'string',
-          },
-        },
         secretReminderRepeatDays: { type: 'number', description: 'Reminder interval in days' },
         secretReminderNote: { type: 'string', description: 'Reminder note' },
       },
