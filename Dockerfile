@@ -39,6 +39,7 @@ ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV NODE_ENV=production
 ENV LOG_LEVEL=info
+ENV MCP_ALLOWED_HOSTS=""
 
 # Keycloak Configuration
 ENV KEYCLOAK_URL=""
@@ -58,6 +59,10 @@ ENV INFISICAL_ENVIRONMENT_SLUG=""
 
 # Keycloak-Infisical Integration Configuration
 ENV KEYCLOAK_INFISICAL_INTEGRATION_ENABLED=false
+
+# MCP Server Security Configuration
+ENV MCP_ENABLE_DNS_REBINDING_PROTECTION=false
+ENV MCP_ALLOWED_HOSTS=""
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
