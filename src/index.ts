@@ -63,10 +63,16 @@ function initializeSessionClients(sessionId: string): ServerSession {
     const integrationConfig: IntegrationConfig = {
       enabled: true,
     };
-    integration = new KeycloakInfisicalIntegration(keycloakClient, infisicalClient, integrationConfig);
+    integration = new KeycloakInfisicalIntegration(
+      keycloakClient,
+      infisicalClient,
+      integrationConfig
+    );
     console.error(`[${sessionId}] Keycloak-Infisical integration initialized`);
   } else {
-    console.error(`[${sessionId}] Integration not available - both Keycloak and Infisical clients required`);
+    console.error(
+      `[${sessionId}] Integration not available - both Keycloak and Infisical clients required`
+    );
   }
 
   const session: ServerSession = {
@@ -108,7 +114,9 @@ async function main() {
   const args = process.argv.slice(2);
   const mode = args.includes('--mode') ? args[args.indexOf('--mode') + 1] : 'stdio';
   const host = args.includes('--host') ? args[args.indexOf('--host') + 1] : '0.0.0.0';
-  const port = args.includes('--port') ? parseInt(args[args.indexOf('--port') + 1] || '8000') : 8000;
+  const port = args.includes('--port')
+    ? parseInt(args[args.indexOf('--port') + 1] || '8000')
+    : 8000;
 
   if (mode === 'http') {
     // HTTP mode for production deployments with session management
@@ -124,10 +132,10 @@ async function runStdioServer() {
   // Create a single session for STDIO mode
   const sessionId = 'stdio-session';
   const session = initializeSessionClients(sessionId);
-  
+
   const server = createStatefulMCPServer(sessionId);
   const transport = new StdioServerTransport();
-  
+
   await server.connect(transport);
 
   console.error('MCP Server for Keycloak and Infisical started in STDIO mode');
@@ -141,11 +149,13 @@ async function runStatefulHttpServer(host: string, port: number) {
   const app = express();
 
   // Enable CORS for all routes
-  app.use(cors({
-    origin: true,
-    exposedHeaders: ['mcp-session-id'],
-    allowedHeaders: ['Content-Type', 'mcp-session-id'],
-  }));
+  app.use(
+    cors({
+      origin: true,
+      exposedHeaders: ['mcp-session-id'],
+      allowedHeaders: ['Content-Type', 'mcp-session-id'],
+    })
+  );
 
   // Parse JSON bodies
   app.use(express.json());
@@ -190,7 +200,7 @@ async function runStatefulHttpServer(host: string, port: number) {
       // Create transport with session management
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => newSessionId,
-        onsessioninitialized: (id) => {
+        onsessioninitialized: id => {
           console.error(`[${id}] Session initialized`);
           transports[id] = transport;
         },
@@ -248,7 +258,7 @@ async function runStatefulHttpServer(host: string, port: number) {
       res.status(400).send('Invalid or missing session ID');
       return;
     }
-    
+
     const transport = transports[sessionId];
     await transport.handleRequest(req, res);
   });
@@ -260,13 +270,15 @@ async function runStatefulHttpServer(host: string, port: number) {
       res.status(400).send('Invalid or missing session ID');
       return;
     }
-    
+
     const transport = transports[sessionId];
     await transport.handleRequest(req, res);
   });
 
   app.listen(port, host, () => {
-    console.error(`MCP Server for Keycloak and Infisical started in STATEFUL HTTP mode on ${host}:${port}`);
+    console.error(
+      `MCP Server for Keycloak and Infisical started in STATEFUL HTTP mode on ${host}:${port}`
+    );
     console.error(`Health check available at: http://${host}:${port}/health`);
     console.error(`MCP endpoint available at: http://${host}:${port}/mcp`);
     console.error('Features: Session management, SSE notifications, stateful client connections');

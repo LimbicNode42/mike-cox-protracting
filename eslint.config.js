@@ -37,26 +37,29 @@ export default [
     },
     rules: {
       // TypeScript rules (relaxed for existing codebase)
-      '@typescript-eslint/no-unused-vars': ['warn', { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_' 
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-var-requires': 'error',
-      
+
       // Security rules (critical only)
       'security/detect-object-injection': 'warn',
       'security/detect-eval-with-expression': 'error',
       'security/detect-non-literal-require': 'warn',
       'security/detect-pseudoRandomBytes': 'error',
-      
+
       // General code quality (relaxed)
       'no-console': 'off', // We use console for logging
       'no-unused-vars': 'off', // Handled by TypeScript
       'prefer-const': 'warn',
       'no-var': 'error',
-      'eqeqeq': 'warn',
-      'curly': 'off', // Disabled for existing code
+      eqeqeq: 'warn',
+      curly: 'off', // Disabled for existing code
       'no-useless-escape': 'warn',
     },
   },

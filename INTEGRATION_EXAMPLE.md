@@ -22,11 +22,13 @@ export KEYCLOAK_INFISICAL_INTEGRATION_ENABLED="true"
 When the integration is enabled, the system automatically:
 
 1. **Project Discovery/Creation**
+
    - Searches for existing "Keycloak Secrets" project
    - Creates new project if none exists
    - Caches project ID for future operations
 
 2. **Folder Management**
+
    - Ensures `/keycloak` folder exists in the project
    - Creates folder if it doesn't exist
    - Uses consistent folder structure
