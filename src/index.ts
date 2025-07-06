@@ -153,12 +153,53 @@ async function runStatefulHttpServer(host: string, port: number) {
     cors({
       origin: true,
       exposedHeaders: ['mcp-session-id'],
-      allowedHeaders: ['Content-Type', 'mcp-session-id'],
+      allowedHeaders: ['Content-Type', 'mcp-session-id', 'API_KEY'],
     })
   );
 
   // Parse JSON bodies
   app.use(express.json());
+
+  // API Key authentication middleware
+  function validateApiKey(req: Request, res: Response, next: any) {
+    const requiredApiKey = process.env.API_KEY;
+
+    // Skip authentication if no API key is configured
+    if (!requiredApiKey) {
+      console.error('Warning: No API_KEY configured - authentication disabled');
+      return next();
+    }
+
+    const providedApiKey = req.headers['api_key'] as string;
+
+    if (!providedApiKey) {
+      console.error('Authentication failed: Missing API_KEY header');
+      return res.status(401).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Authentication required: Missing API_KEY header',
+        },
+        id: null,
+      });
+    }
+
+    if (providedApiKey !== requiredApiKey) {
+      console.error('Authentication failed: Invalid API_KEY');
+      return res.status(401).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Authentication failed: Invalid API_KEY',
+        },
+        id: null,
+      });
+    }
+
+    // Authentication successful
+    console.error('API key authentication successful');
+    next();
+  }
 
   // Map to store transports by session ID
   const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
@@ -166,17 +207,22 @@ async function runStatefulHttpServer(host: string, port: number) {
   // Health check endpoint
   app.get('/health', (req: Request, res: Response) => {
     const activeSessions = Object.keys(transports).length;
+    const authenticationEnabled = !!process.env.API_KEY;
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       mode: 'stateful',
       activeSessions,
       capabilities: ['keycloak', 'infisical', 'integration'],
+      authentication: {
+        enabled: authenticationEnabled,
+        type: authenticationEnabled ? 'API_KEY' : 'none',
+      },
     });
   });
 
   // Handle POST requests for client-to-server communication
-  app.post('/mcp', async (req: Request, res: Response) => {
+  app.post('/mcp', validateApiKey, async (req: Request, res: Response) => {
     // Check for existing session ID
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     let transport: StreamableHTTPServerTransport;
@@ -279,7 +325,7 @@ async function runStatefulHttpServer(host: string, port: number) {
   });
 
   // Handle GET requests for server-to-client notifications via SSE
-  app.get('/mcp', async (req: Request, res: Response) => {
+  app.get('/mcp', validateApiKey, async (req: Request, res: Response) => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
@@ -291,7 +337,7 @@ async function runStatefulHttpServer(host: string, port: number) {
   });
 
   // Handle DELETE requests for session termination
-  app.delete('/mcp', async (req: Request, res: Response) => {
+  app.delete('/mcp', validateApiKey, async (req: Request, res: Response) => {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
@@ -303,11 +349,15 @@ async function runStatefulHttpServer(host: string, port: number) {
   });
 
   app.listen(port, host, () => {
+    const authEnabled = !!process.env.API_KEY;
     console.error(
       `MCP Server for Keycloak and Infisical started in STATEFUL HTTP mode on ${host}:${port}`
     );
     console.error(`Health check available at: http://${host}:${port}/health`);
     console.error(`MCP endpoint available at: http://${host}:${port}/mcp`);
+    console.error(
+      `Authentication: ${authEnabled ? 'ENABLED (API_KEY required)' : 'DISABLED (no API_KEY configured)'}`
+    );
     console.error('Features: Session management, SSE notifications, stateful client connections');
   });
 }

@@ -63,6 +63,7 @@ ENV KEYCLOAK_INFISICAL_INTEGRATION_ENABLED=false
 # MCP Server Security Configuration
 ENV MCP_ENABLE_DNS_REBINDING_PROTECTION=false
 ENV MCP_ALLOWED_HOSTS=""
+ENV API_KEY=""
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
