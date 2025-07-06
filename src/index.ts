@@ -199,34 +199,32 @@ async function runStatefulHttpServer(host: string, port: number) {
 
       // Create transport with session management
       // Configure DNS rebinding protection and allowed hosts
-      const enableDnsRebindingProtection = process.env.MCP_ENABLE_DNS_REBINDING_PROTECTION !== 'false';
+      const enableDnsRebindingProtection =
+        process.env.MCP_ENABLE_DNS_REBINDING_PROTECTION !== 'false';
       const allowedHosts: string[] = [];
-      
+
       if (enableDnsRebindingProtection) {
         // Start with default localhost addresses
-        allowedHosts.push(
-          '127.0.0.1', 
-          'localhost', 
-          `127.0.0.1:${port}`, 
-          `localhost:${port}`
-        );
-        
+        allowedHosts.push('127.0.0.1', 'localhost', `127.0.0.1:${port}`, `localhost:${port}`);
+
         // Add the current host if not localhost
         if (host !== '127.0.0.1' && host !== 'localhost') {
           allowedHosts.push(host, `${host}:${port}`);
         }
-        
+
         // Add custom allowed hosts from environment variable
         const customHosts = process.env.MCP_ALLOWED_HOSTS;
         if (customHosts) {
           allowedHosts.push(...customHosts.split(',').map(h => h.trim()));
         }
-        
-        console.error(`[${newSessionId}] DNS rebinding protection ENABLED. Allowed hosts: ${allowedHosts.join(', ')}`);
+
+        console.error(
+          `[${newSessionId}] DNS rebinding protection ENABLED. Allowed hosts: ${allowedHosts.join(', ')}`
+        );
       } else {
         console.error(`[${newSessionId}] DNS rebinding protection DISABLED - allowing all hosts`);
       }
-      
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => newSessionId,
         onsessioninitialized: id => {
